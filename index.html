@@ -211,11 +211,11 @@
 
   <!-- Uppercase Confirm Modal -->
   <div id="upper-modal" class="hidden fixed inset-0 z-50 modal-backdrop flex items-center justify-center p-4">
-    <div class="bg-white rounded-xl shadow-2xl w-full max-w-md flex flex-col">
+    <div class="bg-white rounded-xl shadow-2xl w-full max-w-md max-h-[80vh] flex flex-col">
       <div class="px-6 py-4 border-b border-gray-200">
         <h2 class="text-lg font-semibold text-gray-800">SRN con min&uacute;sculas detectados</h2>
       </div>
-      <div class="px-6 py-4 text-sm text-gray-600 leading-relaxed">
+      <div class="px-6 py-4 text-sm text-gray-600 leading-relaxed overflow-y-auto flex-1">
         <p>Los SRN en EUDAMED <strong>siempre</strong> usan letras may&uacute;sculas.</p>
         <p class="mt-2">Si continuas, se convertir&aacute;n autom&aacute;ticamente:</p>
         <div id="upper-list" class="mt-3 space-y-1"></div>
