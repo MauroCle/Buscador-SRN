@@ -85,7 +85,11 @@ const server = http.createServer(async (req, res) => {
 
   try {
     const content = fs.readFileSync(filePath);
-    res.writeHead(200, { 'Content-Type': contentType });
+    res.writeHead(200, {
+      'Content-Type': contentType,
+      'Cache-Control': 'no-store, no-cache, must-revalidate',
+      'Pragma': 'no-cache'
+    });
     res.end(content);
   } catch (e) {
     res.writeHead(404, { 'Content-Type': 'text/plain' });
