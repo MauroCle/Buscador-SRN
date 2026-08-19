@@ -30,7 +30,7 @@
         <p class="text-sm text-gray-500">Consulta dispositivos m&eacute;dicos por Single Registration Number</p>
       </div>
       <div class="text-xs text-gray-400 text-right">
-        <div>v4.0</div>
+        <div>v4.1</div>
         <div>Data Lake EUDAMED</div>
       </div>
     </div>
@@ -139,6 +139,7 @@
       { key: 'TRADE_NAME',    label: 'Trade Name' },
       { key: 'RISK_CLASS_ID', label: 'Risk Class' },
       { key: 'MF_NAME',       label: 'Manufacturer' },
+      { key: 'MF_ADDRESS',    label: 'Registered Address' },
       { key: 'REFERENCE',     label: 'Reference Catalogue Number' },
       { key: 'NOMENCLATURE_CODE', label: 'Nomenclature Code(s)' }
     ];
@@ -153,6 +154,7 @@
     var selectedExtra = [];
     var BATCH_MS = 200;
     var PROXY = '/api/proxy?url=';
+    var manufacturerAddress = '';
 
     var TRANSLATIONS = {
       RISK_CLASS_ID: {
@@ -191,6 +193,33 @@
         if (s === '0' || s.toUpperCase() === 'N' || s.toUpperCase() === 'FALSE') return 'No';
       }
       return s;
+    }
+
+    async function fetchAddress(srn) {
+      try {
+        var url = 'https://ec.europa.eu/tools/eudamed/api/eos?page=0&pageSize=1&size=1&sort=srn,ASC&sort=versionNumber,DESC&languageIso2Code=en&srn=' + encodeURIComponent(srn);
+        var data = await fetchRetry(url, abortCtrl.signal);
+        var items = (data && data.content) ? data.content : [];
+        if (items.length > 0) {
+          var a = items[0];
+          if (a.geographicalAddress) {
+            manufacturerAddress = a.countryName
+              ? a.geographicalAddress + ', ' + a.countryName
+              : a.geographicalAddress;
+          } else {
+            var parts = [];
+            if (a.streetName) parts.push(a.streetName);
+            if (a.buildingNumber) parts.push(a.buildingNumber);
+            if (a.postbox) parts.push('P.O. Box ' + a.postbox);
+            if (a.postalZone) parts.push(a.postalZone);
+            if (a.cityName) parts.push(a.cityName);
+            if (a.countryName) parts.push(a.countryName);
+            manufacturerAddress = parts.join(', ');
+          }
+        }
+      } catch (e) {
+        manufacturerAddress = '';
+      }
     }
 
     function loadSettings() {
@@ -258,6 +287,7 @@
       hideError();
       rawItems = [];
       results = [];
+      manufacturerAddress = '';
       abortCtrl = new AbortController();
       setSearchActive(true);
       setHeaders();
@@ -272,6 +302,9 @@
       var baseUrl = 'https://api.datalake.sante.service.ec.europa.eu';
       var nextUrl = baseUrl + '/eudamed/udi?MF_SRN=' +
         encodeURIComponent(srn) + '&format=json&api-version=v1.0';
+
+      setLoading('Obteniendo direcci\u00f3n registrada...');
+      await fetchAddress(srn);
 
       try {
         while (nextUrl) {
@@ -334,6 +367,7 @@
         it.TRADE_NAME || '',
         translateField('RISK_CLASS_ID', it.RISK_CLASS_ID),
         it.MF_NAME || '',
+        manufacturerAddress,
         it.REFERENCE || '',
         String(it.NOMENCLATURE_CODE || '').trim()
       ];
@@ -341,6 +375,7 @@
 
     function getExtraValue(item, key) {
       if (key === '__SRN') return '';
+      if (key === 'MF_ADDRESS') return manufacturerAddress;
       var v = item[key];
       if (v === null || v === undefined) return '';
       if (typeof v === 'object') return JSON.stringify(v);
