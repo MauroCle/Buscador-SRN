@@ -269,7 +269,8 @@
     function stopSearch() { if (abortCtrl) abortCtrl.abort(); }
 
     async function search(srn) {
-      var nextUrl = 'https://api.datalake.sante.service.ec.europa.eu/eudamed/udi?MF_SRN=' +
+      var baseUrl = 'https://api.datalake.sante.service.ec.europa.eu';
+      var nextUrl = baseUrl + '/eudamed/udi?MF_SRN=' +
         encodeURIComponent(srn) + '&format=json&api-version=v1.0';
 
       try {
@@ -295,7 +296,9 @@
             (data.nextLink ? 'Descargando siguiente p\u00e1gina...' : 'Procesando...'));
 
           if (data.nextLink && data.nextLink !== '') {
-            nextUrl = data.nextLink;
+            var nl = data.nextLink;
+            if (nl.indexOf('http') !== 0) nl = baseUrl + (nl.charAt(0) === '/' ? '' : '/') + nl;
+            nextUrl = nl;
             await sleep(BATCH_MS);
           } else { break; }
         }
