@@ -22,6 +22,13 @@
     .tab-active { border-bottom: 2px solid #2563eb; color: #1d4ed8; font-weight: 600; }
     .tab-inactive { border-bottom: 2px solid transparent; color: #6b7280; }
     .tab-inactive:hover { color: #374151; border-bottom-color: #d1d5db; }
+    .toggle { position: relative; width: 40px; height: 22px; flex-shrink: 0; }
+    .toggle input { opacity: 0; width: 0; height: 0; }
+    .toggle-slider { position: absolute; inset: 0; background: #cbd5e1; border-radius: 22px; cursor: pointer; transition: background 0.2s; }
+    .toggle-slider::before { content: ''; position: absolute; width: 16px; height: 16px; left: 3px; bottom: 3px; background: white; border-radius: 50%; transition: transform 0.2s; }
+    .toggle input:checked + .toggle-slider { background: #2563eb; }
+    .toggle input:checked + .toggle-slider::before { transform: translateX(18px); }
+    .toggle input:disabled + .toggle-slider { opacity: 0.5; cursor: not-allowed; }
   </style>
 </head>
 <body class="bg-gray-50 min-h-screen">
@@ -202,13 +209,46 @@
 
   </main>
 
+  <!-- Uppercase Confirm Modal -->
+  <div id="upper-modal" class="hidden fixed inset-0 z-50 modal-backdrop flex items-center justify-center p-4">
+    <div class="bg-white rounded-xl shadow-2xl w-full max-w-md flex flex-col">
+      <div class="px-6 py-4 border-b border-gray-200">
+        <h2 class="text-lg font-semibold text-gray-800">SRN con min&uacute;sculas detectados</h2>
+      </div>
+      <div class="px-6 py-4 text-sm text-gray-600 leading-relaxed">
+        <p>Los SRN en EUDAMED <strong>siempre</strong> usan letras may&uacute;sculas.</p>
+        <p class="mt-2">Si continuas, se convertir&aacute;n autom&aacute;ticamente:</p>
+        <div id="upper-list" class="mt-3 space-y-1"></div>
+      </div>
+      <div class="px-6 py-3 border-t border-gray-200 flex items-center justify-end gap-2">
+        <button onclick="upperResolve(false)" class="px-4 py-2 text-sm text-gray-600 hover:bg-gray-100 rounded-lg transition">No convertir</button>
+        <button onclick="upperResolve(true)" class="px-4 py-2 text-sm bg-blue-600 hover:bg-blue-700 text-white rounded-lg transition">Convertir a may&uacute;sculas</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Duplicate SRN Modal -->
+  <div id="dup-modal" class="hidden fixed inset-0 z-50 modal-backdrop flex items-center justify-center p-4">
+    <div class="bg-white rounded-xl shadow-2xl w-full max-w-lg max-h-[80vh] flex flex-col">
+      <div class="px-6 py-4 border-b border-gray-200">
+        <h2 class="text-lg font-semibold text-gray-800">SRN duplicados detectados</h2>
+        <p id="dup-summary" class="text-xs text-gray-500 mt-0.5"></p>
+      </div>
+      <div id="dup-list" class="px-6 py-4 overflow-y-auto flex-1"></div>
+      <div class="px-6 py-3 border-t border-gray-200 flex items-center justify-end gap-2">
+        <button onclick="cancelDupModal()" class="px-4 py-2 text-sm text-gray-600 hover:bg-gray-100 rounded-lg transition">Cancelar</button>
+        <button onclick="continueDupModal()" class="px-4 py-2 text-sm bg-blue-600 hover:bg-blue-700 text-white rounded-lg transition">Continuar sin duplicados</button>
+      </div>
+    </div>
+  </div>
+
   <!-- Settings Modal -->
   <div id="settings-modal" class="hidden fixed inset-0 z-50 modal-backdrop flex items-center justify-center p-4">
-    <div class="bg-white rounded-xl shadow-2xl w-full max-w-lg max-h-[80vh] flex flex-col">
+    <div class="bg-white rounded-xl shadow-2xl w-full max-w-4xl max-h-[80vh] flex flex-col">
       <div class="px-6 py-4 border-b border-gray-200 flex items-center justify-between">
         <div>
-          <h2 class="text-lg font-semibold text-gray-800">Configurar columnas</h2>
-          <p class="text-xs text-gray-500 mt-0.5">Selecciona campos adicionales para exportar a Excel</p>
+          <h2 class="text-lg font-semibold text-gray-800">Configuraci\u00f3n</h2>
+          <p class="text-xs text-gray-500 mt-0.5">Columnas, procesamiento por lote y exportaci\u00f3n a Excel</p>
         </div>
         <button onclick="closeSettings()" class="p-1 hover:bg-gray-100 rounded-lg transition">
           <svg class="w-5 h-5 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/></svg>
@@ -242,12 +282,14 @@
 
     var LS_KEY = 'eudamed_field_settings';
     var LS_FIELDS_KEY = 'eudamed_available_fields';
+    var LS_BATCH_KEY = 'eudamed_batch_config';
     var rawItems = [];
     var results = [];
     var abortCtrl = null;
     var searching = false;
     var availableFields = [];
     var selectedExtra = [];
+    var batchConfig = { autoUpper: false, autoUpperSilent: false, autoDedup: false, autoDedupSilent: false };
     var BATCH_MS = 200;
     var PROXY = '/api/proxy?url=';
     var manufacturerAddress = '';
@@ -355,6 +397,15 @@
     }
     function persistAvailableFields() {
       try { localStorage.setItem(LS_FIELDS_KEY, JSON.stringify(availableFields)); } catch (e) {}
+    }
+    function loadBatchConfig() {
+      try {
+        var s = localStorage.getItem(LS_BATCH_KEY);
+        if (s) { var p = JSON.parse(s); for (var k in batchConfig) { if (p[k] !== undefined) batchConfig[k] = p[k]; } }
+      } catch (e) {}
+    }
+    function persistBatchConfig() {
+      try { localStorage.setItem(LS_BATCH_KEY, JSON.stringify(batchConfig)); } catch (e) {}
     }
 
     function discoverFields(item) {
@@ -612,36 +663,66 @@
         return;
       }
       var html = '';
-      html += '<div class="mb-4">';
+
+      html += '<div class="border-b border-gray-200 pb-4 mb-4">';
+      html += '<p class="text-xs font-semibold text-gray-500 uppercase tracking-wider mb-3">Procesamiento por lote</p>';
+
+      html += '<div class="flex items-center gap-3 mb-2">';
+      html += '<label class="toggle"><input type="checkbox" id="cfg-auto-upper" onchange="toggleSilentDisable(\'upper\')"><span class="toggle-slider"></span></label>';
+      html += '<div><p class="text-sm text-gray-700 font-medium">Convertir min\u00fasculas a may\u00fasculas</p>';
+      html += '<p class="text-xs text-gray-400">SRN con letras en min\u00fascula se convierten autom\u00e1ticamente</p></div>';
+      html += '</div>';
+      html += '<div id="row-upper-silent" class="flex items-center gap-2 ml-[52px] mb-4">';
+      html += '<input type="checkbox" id="cfg-upper-silent" class="w-3.5 h-3.5 text-blue-600 rounded border-gray-300" />';
+      html += '<label for="cfg-upper-silent" class="text-xs text-gray-500">No preguntar (procesar sin conversi\u00f3n)</label>';
+      html += '</div>';
+
+      html += '<div class="flex items-center gap-3 mb-2">';
+      html += '<label class="toggle"><input type="checkbox" id="cfg-auto-dedup" onchange="toggleSilentDisable(\'dedup\')"><span class="toggle-slider"></span></label>';
+      html += '<div><p class="text-sm text-gray-700 font-medium">Eliminar duplicados</p>';
+      html += '<p class="text-xs text-gray-400">Mantiene solo la primera aparici\u00f3n de cada SRN</p></div>';
+      html += '</div>';
+      html += '<div id="row-dedup-silent" class="flex items-center gap-2 ml-[52px]">';
+      html += '<input type="checkbox" id="cfg-dedup-silent" class="w-3.5 h-3.5 text-blue-600 rounded border-gray-300" />';
+      html += '<label for="cfg-dedup-silent" class="text-xs text-gray-500">No preguntar (mantener duplicados)</label>';
+      html += '</div>';
+
+      html += '</div>';
+
+      html += '<div class="grid grid-cols-2 gap-4">';
+
+      html += '<div>';
       html += '<p class="text-xs font-semibold text-gray-500 uppercase tracking-wider mb-2">Campos por defecto (siempre incluidos)</p>';
       html += '<div class="space-y-1">';
       DEFAULT_FIELDS.forEach(function(f) {
         html += '<div class="flex items-center gap-2 px-3 py-1.5 rounded bg-gray-50 text-sm text-gray-600">';
         html += '<svg class="w-4 h-4 text-green-500 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"/></svg>';
-        html += '<span>' + esc(f.label) + '</span>';
-        html += '<span class="text-xs text-gray-400 ml-auto">' + f.key + '</span>';
+        html += '<span class="truncate">' + esc(f.label) + '</span>';
+        html += '<span class="text-xs text-gray-400 ml-auto flex-shrink-0">' + f.key + '</span>';
         html += '</div>';
       });
       html += '</div></div>';
 
-      html += '<div class="border-t border-gray-200 pt-4">';
+      html += '<div>';
       html += '<div class="flex items-center justify-between mb-2">';
       html += '<p class="text-xs font-semibold text-gray-500 uppercase tracking-wider">Campos adicionales</p>';
       html += '<div class="flex gap-2">';
-      html += '<button onclick="toggleAllExtra(true)" class="text-xs text-blue-500 hover:text-blue-700">Seleccionar todos</button>';
+      html += '<button onclick="toggleAllExtra(true)" class="text-xs text-blue-500 hover:text-blue-700">Todos</button>';
       html += '<span class="text-gray-300">|</span>';
       html += '<button onclick="toggleAllExtra(false)" class="text-xs text-blue-500 hover:text-blue-700">Ninguno</button>';
       html += '</div></div>';
       html += '<input id="extra-search" type="text" placeholder="Buscar campo..." oninput="filterExtraFields(this.value)" class="w-full px-3 py-1.5 text-sm border border-gray-200 rounded-lg mb-2 focus:outline-none focus:ring-1 focus:ring-blue-500" />';
-      html += '<div id="extra-fields-list" class="space-y-0.5 max-h-64 overflow-y-auto border border-gray-200 rounded-lg">';
+      html += '<div id="extra-fields-list" class="space-y-0.5 max-h-[248px] overflow-y-auto border border-gray-200 rounded-lg">';
       availableFields.forEach(function(f) {
         html += '<label class="check-item flex items-center gap-2 px-3 py-2 cursor-pointer rounded transition">';
         html += '<input type="checkbox" value="' + f.key + '" class="extra-cb w-4 h-4 text-blue-600 rounded border-gray-300 focus:ring-blue-500" />';
-        html += '<span class="text-sm text-gray-700 flex-1">' + esc(f.label) + '</span>';
-        html += '<span class="text-xs text-gray-400">' + f.key + '</span>';
+        html += '<span class="text-sm text-gray-700 flex-1 truncate">' + esc(f.label) + '</span>';
+        html += '<span class="text-xs text-gray-400 flex-shrink-0">' + f.key + '</span>';
         html += '</label>';
       });
       html += '</div></div>';
+
+      html += '</div>';
 
       body.innerHTML = html;
       settingsBuilt = true;
@@ -653,6 +734,22 @@
       cbs.forEach(function(cb) {
         cb.checked = sel.indexOf(cb.value) !== -1;
       });
+      loadBatchConfig();
+      document.getElementById('cfg-auto-upper').checked = batchConfig.autoUpper;
+      document.getElementById('cfg-upper-silent').checked = batchConfig.autoUpperSilent;
+      document.getElementById('cfg-auto-dedup').checked = batchConfig.autoDedup;
+      document.getElementById('cfg-dedup-silent').checked = batchConfig.autoDedupSilent;
+      toggleSilentDisable('upper');
+      toggleSilentDisable('dedup');
+    }
+
+    function toggleSilentDisable(which) {
+      var autoOn = document.getElementById('cfg-auto-' + which).checked;
+      var silentCb = document.getElementById('cfg-' + which + '-silent');
+      var row = document.getElementById('row-' + which + '-silent');
+      silentCb.disabled = autoOn;
+      row.style.opacity = autoOn ? '0.4' : '1';
+      if (autoOn) { silentCb.checked = false; }
     }
 
     function openSettings() {
@@ -682,6 +779,11 @@
       selectedExtra = [];
       cbs.forEach(function(cb) { if (cb.checked) selectedExtra.push(cb.value); });
       persistSettings();
+      batchConfig.autoUpper = document.getElementById('cfg-auto-upper').checked;
+      batchConfig.autoUpperSilent = document.getElementById('cfg-upper-silent').checked;
+      batchConfig.autoDedup = document.getElementById('cfg-auto-dedup').checked;
+      batchConfig.autoDedupSilent = document.getElementById('cfg-dedup-silent').checked;
+      persistBatchConfig();
       setHeaders();
       renderTable();
       if (batchResults.length > 0) {
@@ -694,6 +796,16 @@
     function resetSettings() {
       selectedExtra = [];
       persistSettings();
+      batchConfig = { autoUpper: false, autoUpperSilent: false, autoDedup: false, autoDedupSilent: false };
+      persistBatchConfig();
+      if (settingsBuilt) {
+        document.getElementById('cfg-auto-upper').checked = false;
+        document.getElementById('cfg-upper-silent').checked = false;
+        document.getElementById('cfg-auto-dedup').checked = false;
+        document.getElementById('cfg-dedup-silent').checked = false;
+        toggleSilentDisable('upper');
+        toggleSilentDisable('dedup');
+      }
       var cbs = document.querySelectorAll('.extra-cb');
       cbs.forEach(function(cb) { cb.checked = false; });
       setHeaders();
@@ -742,6 +854,7 @@
     });
 
     selectedExtra = loadSettings();
+    loadBatchConfig();
     availableFields = loadAvailableFields();
     setHeaders();
 
@@ -780,21 +893,38 @@
           }
           if (srnCol === -1) {
             for (var i = 0; i < headers.length; i++) {
-              if (/[A-Z]{2}-[A-Z]{2,3}-\d/.test(String(data[1] ? data[1][i] : ''))) { srnCol = i; break; }
+              if (/[a-zA-Z]{2}-[a-zA-Z]{2,3}-\d/.test(String(data[1] ? data[1][i] : ''))) { srnCol = i; break; }
             }
           }
           if (srnCol >= 0) select.value = String(srnCol);
           var srns = [];
           for (var r = 1; r < data.length; r++) {
             var val = String(data[r][srnCol >= 0 ? srnCol : 0] || '').trim();
-            if (val && /[A-Z]{2}-[A-Z]{2,3}-\d/.test(val)) srns.push(val);
+            if (val && /[a-zA-Z]{2}-[a-zA-Z]{2,3}-\d/.test(val)) srns.push(val);
           }
-          batchSrnList = srns;
-          document.getElementById('btn-batch-start').disabled = srns.length === 0;
-          if (srns.length > 0) {
-            showBatchLog('Detectados ' + srns.length + ' SRN v\u00e1lidos.');
+          var hasLower = srns.some(function(s) { return s !== s.toUpperCase(); });
+          if (hasLower && !batchConfig.autoUpper && !batchConfig.autoUpperSilent) {
+            pendingRawSrns = srns;
+            var lowerItems = srns.filter(function(s) { return s !== s.toUpperCase(); });
+            var listHtml = '<div class="space-y-1">';
+            lowerItems.forEach(function(s) {
+              listHtml += '<div class="px-3 py-2 bg-gray-50 rounded-lg font-mono text-sm">';
+              listHtml += '<span class="text-red-500">' + esc(s) + '</span>';
+              listHtml += ' <span class="text-gray-400">\u2192</span> ';
+              listHtml += '<span class="text-green-600">' + esc(s.toUpperCase()) + '</span>';
+              listHtml += '</div>';
+            });
+            listHtml += '</div>';
+            document.getElementById('upper-list').innerHTML = listHtml;
+            upperResolver = function(doUpper) {
+              upperResolver = null;
+              var final = doUpper ? srns.map(function(s) { return s.toUpperCase(); }) : srns;
+              finalizeSrns(final);
+            };
+            document.getElementById('upper-modal').classList.remove('hidden');
           } else {
-            showBatchLog('No se detectaron SRN v\u00e1lidos en el archivo.');
+            var final = (hasLower && batchConfig.autoUpper) ? srns.map(function(s) { return s.toUpperCase(); }) : srns;
+            finalizeSrns(final);
           }
         } catch (err) {
           showError('Error leyendo el archivo: ' + err.message);
@@ -809,6 +939,81 @@
       var wb = XLSX.utils.book_new();
       XLSX.utils.book_append_sheet(wb, ws, 'SRN');
       XLSX.writeFile(wb, 'Plantilla_SRN_EUDAMED.xlsx');
+    }
+
+    // ==================== UPPERCASE MODAL ====================
+    var pendingRawSrns = [];
+    var upperResolver = null;
+
+    function upperResolve(doUpper) {
+      document.getElementById('upper-modal').classList.add('hidden');
+      if (upperResolver) upperResolver(doUpper);
+    }
+
+    function finalizeSrns(srns) {
+      var hasDups = false;
+      var seen = {};
+      var dups = [];
+      for (var d = 0; d < srns.length; d++) {
+        if (seen[srns[d]]) { if (!hasDups) hasDups = true; dups.push(srns[d]); }
+        else seen[srns[d]] = true;
+      }
+
+      if (hasDups && !batchConfig.autoDedup && !batchConfig.autoDedupSilent) {
+        dupFullList = srns;
+        document.getElementById('dup-summary').textContent =
+          dups.length + ' SRN duplicado(s) de ' + srns.length + ' total';
+        var html = '<div class="space-y-1">';
+        dups.forEach(function(s) {
+          html += '<div class="px-3 py-2 bg-gray-50 rounded-lg">';
+          html += '<span class="font-mono text-sm text-gray-800">' + esc(s) + '</span>';
+          html += '</div>';
+        });
+        html += '</div>';
+        document.getElementById('dup-list').innerHTML = html;
+        document.getElementById('dup-modal').classList.remove('hidden');
+        return;
+      }
+
+      var final = srns;
+      if (hasDups && batchConfig.autoDedup) {
+        final = [];
+        var seen2 = {};
+        for (var i = 0; i < srns.length; i++) {
+          if (!seen2[srns[i]]) { final.push(srns[i]); seen2[srns[i]] = true; }
+        }
+      }
+
+      batchSrnList = final;
+      document.getElementById('btn-batch-start').disabled = final.length === 0;
+      if (final.length > 0) {
+        var msg = 'Detectados ' + srns.length + ' SRN';
+        if (hasDups && batchConfig.autoDedup) msg += ', ' + final.length + ' \u00fanicos tras eliminar duplicados';
+        showBatchLog(msg + '.');
+      } else {
+        showBatchLog('No se detectaron SRN v\u00e1lidos en el archivo.');
+      }
+    }
+
+    // ==================== DUPLICATE MODAL ====================
+    var dupFullList = [];
+
+    function cancelDupModal() {
+      document.getElementById('dup-modal').classList.add('hidden');
+      batchSrnList = [];
+      document.getElementById('btn-batch-start').disabled = true;
+    }
+
+    function continueDupModal() {
+      document.getElementById('dup-modal').classList.add('hidden');
+      var seen = {};
+      var deduped = [];
+      for (var i = 0; i < dupFullList.length; i++) {
+        if (!seen[dupFullList[i]]) { deduped.push(dupFullList[i]); seen[dupFullList[i]] = true; }
+      }
+      batchSrnList = deduped;
+      showBatchLog('Detectados ' + dupFullList.length + ' SRN, ' + deduped.length + ' \u00fanicos tras eliminar duplicados.');
+      document.getElementById('btn-batch-start').disabled = deduped.length === 0;
     }
 
     // ==================== BATCH SEARCH ====================

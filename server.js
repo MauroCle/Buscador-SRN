@@ -2,7 +2,6 @@ const http = require('http');
 const https = require('https');
 const fs = require('fs');
 const path = require('path');
-const url = require('url');
 
 const PORT = 3000;
 
@@ -34,7 +33,7 @@ function proxyApi(targetUrl) {
 }
 
 const server = http.createServer(async (req, res) => {
-  const parsed = url.parse(req.url, true);
+  const parsed = new URL(req.url, 'http://localhost');
 
   // CORS headers for local dev
   res.setHeader('Access-Control-Allow-Origin', '*');
@@ -48,7 +47,7 @@ const server = http.createServer(async (req, res) => {
 
   // Proxy endpoint
   if (parsed.pathname === '/api/proxy') {
-    const target = parsed.query.url;
+    const target = parsed.searchParams.get('url');
     if (!target) {
       res.writeHead(400, { 'Content-Type': 'application/json' });
       return res.end(JSON.stringify({ error: 'Missing url parameter' }));
