@@ -260,12 +260,10 @@
 
     var TRANSLATIONS = {
       RISK_CLASS_ID: {
-        '-10': 'Not classified', '-205': 'Class IIb', '-204': 'Class IIa',
-        '-203': 'Class I', '-154': 'Class I (special)',
-        '-202': 'Class D (IVD)', '-201': 'Class C (IVD)',
-        '-155': 'Class B (IVD)', '-200': 'Class A (IVD)',
-        '-156': 'IVD General', '-219': 'IVD Self-testing',
-        '-199': 'IVD Annex II List A', '-157': 'IVD Annex II List B'
+        '-10': 'Not classified', '-206': 'Class III',
+        '-205': 'Class IIb', '-204': 'Class IIa',
+        '-203': 'Class I', '-154': 'Class I (legacy)',
+        '-53': 'AIMDD'
       },
       DEVICE_STATUS_TYPE_ID: {
         '-11': 'On the market', '-12': 'No longer on the market',
@@ -289,9 +287,22 @@
     };
     var BOOLEAN_FIELDS = ['SUTURES','STERILE','STERILIZATION','REUSABLE','REPROCESSED','SINGLE_USE'];
 
-    function translateField(key, val) {
+    function translateField(key, val, item) {
       if (val === null || val === undefined || val === '') return '';
       var s = String(val).trim();
+      // Subclass detection (Is/Im/Ir) commented out - not needed per EUDAMED display
+      // if (key === 'RISK_CLASS_ID' && item) {
+      //   if (s === '-203' || s === '-154') {
+      //     var labels = [];
+      //     var sv = String(item.STERILE || '').toUpperCase();
+      //     var mv = String(item.MEASURING_FUNCTION || '').toUpperCase();
+      //     var rv = String(item.REUSABLE || '').toUpperCase();
+      //     if (sv === '1' || sv === 'Y' || sv === 'TRUE' || sv === 'YES') labels.push('Is');
+      //     if (mv === '1' || mv === 'Y' || mv === 'TRUE' || mv === 'YES') labels.push('Im');
+      //     if (rv === '1' || rv === 'Y' || rv === 'TRUE' || rv === 'YES') labels.push('Ir');
+      //     return labels.length > 0 ? 'Class ' + labels.join('+') : 'Class I';
+      //   }
+      // }
       if (TRANSLATIONS[key] && TRANSLATIONS[key][s]) return TRANSLATIONS[key][s];
       if (BOOLEAN_FIELDS.indexOf(key) !== -1) {
         if (s === '1' || s.toUpperCase() === 'Y' || s.toUpperCase() === 'TRUE') return 'Yes';
@@ -368,6 +379,7 @@
       if (added) {
         availableFields.sort(function(a, b) { return a.label.localeCompare(b.label); });
         persistAvailableFields();
+        settingsBuilt = false;
       }
     }
 
@@ -486,7 +498,7 @@
         it.BASIC_UDI || '',
         it.PRIMARY_DI || '',
         it.TRADE_NAME || '',
-        translateField('RISK_CLASS_ID', it.RISK_CLASS_ID),
+        translateField('RISK_CLASS_ID', it.RISK_CLASS_ID, it),
         it.MF_NAME || '',
         manufacturerAddress,
         it.REFERENCE || '',
@@ -519,7 +531,7 @@
       if (key === 'MF_ADDRESS') return manufacturerAddress;
       var v = item[key];
       if (v === null || v === undefined) return '';
-      return translateField(key, flattenValue(v));
+      return translateField(key, flattenValue(v), item);
     }
 
     async function fetchRetry(url, signal) {
@@ -590,54 +602,79 @@
     }
 
     // ==================== SETTINGS ====================
-    function openSettings() {
-      var modal = document.getElementById('settings-modal');
-      var body = document.getElementById('settings-body');
-      selectedExtra = loadSettings();
+    var settingsBuilt = false;
 
+    function buildSettingsHtml() {
+      var body = document.getElementById('settings-body');
       if (availableFields.length === 0) {
         body.innerHTML = '<p class="text-sm text-gray-400 text-center py-8">Realiza una b\u00fasqueda primero para descubrir los campos disponibles</p>';
-      } else {
-        var html = '';
-        html += '<div class="mb-4">';
-        html += '<p class="text-xs font-semibold text-gray-500 uppercase tracking-wider mb-2">Campos por defecto (siempre incluidos)</p>';
-        html += '<div class="space-y-1">';
-        DEFAULT_FIELDS.forEach(function(f) {
-          html += '<div class="flex items-center gap-2 px-3 py-1.5 rounded bg-gray-50 text-sm text-gray-600">';
-          html += '<svg class="w-4 h-4 text-green-500 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"/></svg>';
-          html += '<span>' + esc(f.label) + '</span>';
-          html += '<span class="text-xs text-gray-400 ml-auto">' + f.key + '</span>';
-          html += '</div>';
-        });
-        html += '</div></div>';
-
-        html += '<div class="border-t border-gray-200 pt-4">';
-        html += '<div class="flex items-center justify-between mb-2">';
-        html += '<p class="text-xs font-semibold text-gray-500 uppercase tracking-wider">Campos adicionales</p>';
-        html += '<div class="flex gap-2">';
-        html += '<button onclick="toggleAllExtra(true)" class="text-xs text-blue-500 hover:text-blue-700">Seleccionar todos</button>';
-        html += '<span class="text-gray-300">|</span>';
-        html += '<button onclick="toggleAllExtra(false)" class="text-xs text-blue-500 hover:text-blue-700">Ninguno</button>';
-        html += '</div></div>';
-        html += '<div id="extra-fields-list" class="space-y-0.5 max-h-64 overflow-y-auto border border-gray-200 rounded-lg">';
-        availableFields.forEach(function(f) {
-          var checked = selectedExtra.indexOf(f.key) !== -1;
-          html += '<label class="check-item flex items-center gap-2 px-3 py-2 cursor-pointer rounded transition">';
-          html += '<input type="checkbox" value="' + f.key + '" ' + (checked ? 'checked' : '') + ' class="extra-cb w-4 h-4 text-blue-600 rounded border-gray-300 focus:ring-blue-500" />';
-          html += '<span class="text-sm text-gray-700 flex-1">' + esc(f.label) + '</span>';
-          html += '<span class="text-xs text-gray-400">' + f.key + '</span>';
-          html += '</label>';
-        });
-        html += '</div></div>';
-
-        body.innerHTML = html;
+        settingsBuilt = false;
+        return;
       }
+      var html = '';
+      html += '<div class="mb-4">';
+      html += '<p class="text-xs font-semibold text-gray-500 uppercase tracking-wider mb-2">Campos por defecto (siempre incluidos)</p>';
+      html += '<div class="space-y-1">';
+      DEFAULT_FIELDS.forEach(function(f) {
+        html += '<div class="flex items-center gap-2 px-3 py-1.5 rounded bg-gray-50 text-sm text-gray-600">';
+        html += '<svg class="w-4 h-4 text-green-500 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"/></svg>';
+        html += '<span>' + esc(f.label) + '</span>';
+        html += '<span class="text-xs text-gray-400 ml-auto">' + f.key + '</span>';
+        html += '</div>';
+      });
+      html += '</div></div>';
 
-      modal.classList.remove('hidden');
+      html += '<div class="border-t border-gray-200 pt-4">';
+      html += '<div class="flex items-center justify-between mb-2">';
+      html += '<p class="text-xs font-semibold text-gray-500 uppercase tracking-wider">Campos adicionales</p>';
+      html += '<div class="flex gap-2">';
+      html += '<button onclick="toggleAllExtra(true)" class="text-xs text-blue-500 hover:text-blue-700">Seleccionar todos</button>';
+      html += '<span class="text-gray-300">|</span>';
+      html += '<button onclick="toggleAllExtra(false)" class="text-xs text-blue-500 hover:text-blue-700">Ninguno</button>';
+      html += '</div></div>';
+      html += '<input id="extra-search" type="text" placeholder="Buscar campo..." oninput="filterExtraFields(this.value)" class="w-full px-3 py-1.5 text-sm border border-gray-200 rounded-lg mb-2 focus:outline-none focus:ring-1 focus:ring-blue-500" />';
+      html += '<div id="extra-fields-list" class="space-y-0.5 max-h-64 overflow-y-auto border border-gray-200 rounded-lg">';
+      availableFields.forEach(function(f) {
+        html += '<label class="check-item flex items-center gap-2 px-3 py-2 cursor-pointer rounded transition">';
+        html += '<input type="checkbox" value="' + f.key + '" class="extra-cb w-4 h-4 text-blue-600 rounded border-gray-300 focus:ring-blue-500" />';
+        html += '<span class="text-sm text-gray-700 flex-1">' + esc(f.label) + '</span>';
+        html += '<span class="text-xs text-gray-400">' + f.key + '</span>';
+        html += '</label>';
+      });
+      html += '</div></div>';
+
+      body.innerHTML = html;
+      settingsBuilt = true;
+    }
+
+    function syncCheckboxes() {
+      var sel = loadSettings();
+      var cbs = document.querySelectorAll('.extra-cb');
+      cbs.forEach(function(cb) {
+        cb.checked = sel.indexOf(cb.value) !== -1;
+      });
+    }
+
+    function openSettings() {
+      if (!settingsBuilt) buildSettingsHtml();
+      syncCheckboxes();
+      var searchInput = document.getElementById('extra-search');
+      if (searchInput) { searchInput.value = ''; filterExtraFields(''); }
+      document.getElementById('settings-modal').classList.remove('hidden');
     }
 
     function closeSettings() {
       document.getElementById('settings-modal').classList.add('hidden');
+    }
+
+    function filterExtraFields(query) {
+      var q = query.toLowerCase();
+      var items = document.querySelectorAll('#extra-fields-list .check-item');
+      items.forEach(function(item) {
+        var label = item.querySelector('.text-sm').textContent.toLowerCase();
+        var key = item.querySelector('.text-xs').textContent.toLowerCase();
+        item.style.display = (label.indexOf(q) !== -1 || key.indexOf(q) !== -1) ? '' : 'none';
+      });
     }
 
     function saveSettings() {
@@ -880,7 +917,7 @@
         it.BASIC_UDI || '',
         it.PRIMARY_DI || '',
         it.TRADE_NAME || '',
-        translateField('RISK_CLASS_ID', it.RISK_CLASS_ID),
+        translateField('RISK_CLASS_ID', it.RISK_CLASS_ID, it),
         it.MF_NAME || '',
         addr,
         it.REFERENCE || '',
