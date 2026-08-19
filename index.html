@@ -30,7 +30,7 @@
         <p class="text-sm text-gray-500">Consulta dispositivos m&eacute;dicos por Single Registration Number</p>
       </div>
       <div class="text-xs text-gray-400 text-right">
-        <div>v4.2</div>
+        <div>v4.3</div>
         <div>Data Lake EUDAMED</div>
       </div>
     </div>
@@ -158,9 +158,12 @@
 
     var TRANSLATIONS = {
       RISK_CLASS_ID: {
-        '-205': 'Class IIb', '-204': 'Class IIa', '-203': 'Class I',
-        '-202': 'Class III', '-201': 'Class I sterile',
-        '-200': 'Class I measuring', '-199': 'Class I reusable surgical instrument'
+        '-10': 'Not classified', '-205': 'Class IIb', '-204': 'Class IIa',
+        '-203': 'Class I', '-154': 'Class I (special)',
+        '-202': 'Class D (IVD)', '-201': 'Class C (IVD)',
+        '-155': 'Class B (IVD)', '-200': 'Class A (IVD)',
+        '-156': 'IVD General', '-219': 'IVD Self-testing',
+        '-199': 'IVD Annex II List A', '-157': 'IVD Annex II List B'
       },
       DEVICE_STATUS_TYPE_ID: {
         '-11': 'On the market', '-12': 'No longer on the market',
@@ -177,9 +180,9 @@
         '-191': 'Other EU/EEA state'
       },
       APPLICABLE_LEGISLATION_ID: {
-        '-111': 'AIMDD (90/385/EEC)', '-112': 'MDD (93/42/EEC)',
-        '-113': 'MDR (EU 2017/745)', '-114': 'IVDD (98/79/EC)',
-        '-115': 'IVDR (EU 2017/746)'
+        '-197': 'MDR (EU 2017/745)', '-198': 'IVDR (EU 2017/746)',
+        '-53': 'MDD (93/42/EEC)', '-54': 'AIMDD (90/385/EEC)',
+        '-55': 'IVDD (98/79/EC)'
       }
     };
     var BOOLEAN_FIELDS = ['SUTURES','STERILE','STERILIZATION','REUSABLE','REPROCESSED','SINGLE_USE'];
@@ -426,11 +429,11 @@
 
     // ==================== TABLE ====================
     function getVisibleCols() {
-      var cols = [{ hdr: 'SRN', idx: -1 }];
-      DEFAULT_FIELDS.forEach(function(f, i) { cols.push({ hdr: f.label, idx: i }); });
+      var cols = [{ hdr: 'SRN', idx: -1, key: '__SRN' }];
+      DEFAULT_FIELDS.forEach(function(f, i) { cols.push({ hdr: f.label, idx: i, key: f.key }); });
       selectedExtra.forEach(function(key) {
         var af = availableFields.filter(function(f) { return f.key === key; })[0];
-        if (af) cols.push({ hdr: af.label, idx: key });
+        if (af) cols.push({ hdr: af.label, idx: key, key: key });
       });
       return cols;
     }
@@ -456,7 +459,10 @@
             else if (typeof c.idx === 'number') val = row[c.idx + 1] || '';
             else val = getExtraValue(rawItems[idx], c.idx);
             var v = esc(val);
-            return '<td class="px-4 py-2.5 text-gray-700 whitespace-nowrap max-w-xs truncate" title="' + v + '">' + v + '</td>';
+            var cls = (c.key === 'MF_ADDRESS')
+              ? 'px-4 py-2.5 text-gray-700 whitespace-nowrap'
+              : 'px-4 py-2.5 text-gray-700 whitespace-nowrap max-w-xs truncate';
+            return '<td class="' + cls + '" title="' + v + '">' + v + '</td>';
           }).join('') + '</tr>';
       }).join('');
     }
