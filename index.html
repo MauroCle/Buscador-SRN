@@ -19,6 +19,9 @@
     .table-container { max-height: 65vh; overflow: auto; }
     .modal-backdrop { background: rgba(0,0,0,0.4); }
     .check-item:hover { background: #f8fafc; }
+    .tab-active { border-bottom: 2px solid #2563eb; color: #1d4ed8; font-weight: 600; }
+    .tab-inactive { border-bottom: 2px solid transparent; color: #6b7280; }
+    .tab-inactive:hover { color: #374151; border-bottom-color: #d1d5db; }
   </style>
 </head>
 <body class="bg-gray-50 min-h-screen">
@@ -30,7 +33,7 @@
         <p class="text-sm text-gray-500">Consulta dispositivos m&eacute;dicos por Single Registration Number</p>
       </div>
       <div class="text-xs text-gray-400 text-right">
-        <div>v4.3</div>
+        <div>v5.1</div>
         <div>Data Lake EUDAMED</div>
       </div>
     </div>
@@ -38,23 +41,86 @@
 
   <main class="max-w-7xl mx-auto px-4 py-6">
 
-    <div class="bg-white rounded-xl shadow-sm border border-gray-200 p-6 mb-6">
-      <div class="flex flex-col md:flex-row gap-4 items-end">
-        <div class="flex-1">
-          <label for="srn-input" class="block text-sm font-medium text-gray-700 mb-1">SRN (Single Registration Number)</label>
-          <input id="srn-input" type="text" placeholder="Ej: CA-MF-000013010"
-            class="w-full px-4 py-2.5 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none transition" />
+    <!-- Tab Navigation -->
+    <div class="bg-white rounded-xl shadow-sm border border-gray-200 mb-6">
+      <div class="flex border-b border-gray-200">
+        <button onclick="switchTab('single')" id="tab-single" class="px-6 py-3 text-sm tab-active transition">
+          B&uacute;squeda simple
+        </button>
+        <button onclick="switchTab('batch')" id="tab-batch" class="px-6 py-3 text-sm tab-inactive transition">
+          B&uacute;squeda por lotes
+        </button>
+      </div>
+
+      <!-- Single Search -->
+      <div id="panel-single" class="p-6">
+        <div class="flex flex-col md:flex-row gap-4 items-end">
+          <div class="flex-1">
+            <label for="srn-input" class="block text-sm font-medium text-gray-700 mb-1">SRN (Single Registration Number)</label>
+            <input id="srn-input" type="text" placeholder="Ej: CA-MF-000013010"
+              class="w-full px-4 py-2.5 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none transition" />
+          </div>
+          <div class="flex gap-2">
+            <button id="btn-search" onclick="startSearch()"
+              class="px-6 py-2.5 bg-blue-600 hover:bg-blue-700 text-white font-medium text-sm rounded-lg transition flex items-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed">
+              <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"/></svg>
+              Buscar
+            </button>
+            <button id="btn-stop" onclick="stopSearch()"
+              class="px-4 py-2.5 bg-red-500 hover:bg-red-600 text-white font-medium text-sm rounded-lg transition hidden">
+              Detener
+            </button>
+          </div>
         </div>
-        <div class="flex gap-2">
-          <button id="btn-search" onclick="startSearch()"
-            class="px-6 py-2.5 bg-blue-600 hover:bg-blue-700 text-white font-medium text-sm rounded-lg transition flex items-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed">
-            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"/></svg>
-            Buscar
-          </button>
-          <button id="btn-stop" onclick="stopSearch()"
-            class="px-4 py-2.5 bg-red-500 hover:bg-red-600 text-white font-medium text-sm rounded-lg transition hidden">
-            Detener
-          </button>
+      </div>
+
+      <!-- Batch Search -->
+      <div id="panel-batch" class="p-6 hidden">
+        <div class="flex flex-col md:flex-row gap-4 items-end mb-4">
+          <div class="flex-1">
+            <label class="block text-sm font-medium text-gray-700 mb-1">Importar lista de SRN</label>
+            <div class="flex gap-2">
+              <label class="flex-1 flex items-center justify-center px-4 py-2.5 border-2 border-dashed border-gray-300 rounded-lg text-sm text-gray-500 hover:border-blue-400 hover:text-blue-600 cursor-pointer transition">
+                <svg class="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12"/></svg>
+                <span id="file-label">Seleccionar archivo Excel/CSV</span>
+                <input id="batch-file" type="file" accept=".xlsx,.xls,.csv" onchange="handleBatchFile(event)" class="hidden" />
+              </label>
+              <button onclick="downloadTemplate()" title="Descargar plantilla"
+                class="px-3 py-2.5 border border-gray-300 rounded-lg text-sm text-gray-600 hover:bg-gray-50 transition flex items-center gap-1">
+                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"/></svg>
+                Plantilla
+              </button>
+            </div>
+          </div>
+          <div class="flex-1">
+            <label class="block text-sm font-medium text-gray-700 mb-1">Columna SRN</label>
+            <select id="batch-col-select" class="w-full px-4 py-2.5 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none transition">
+              <option value="">Detectar autom&aacute;ticamente</option>
+            </select>
+          </div>
+          <div class="flex gap-2">
+            <button id="btn-batch-start" onclick="startBatchSearch()" disabled
+              class="px-6 py-2.5 bg-blue-600 hover:bg-blue-700 text-white font-medium text-sm rounded-lg transition flex items-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed">
+              <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M14.752 11.168l-3.197-2.132A1 1 0 0010 9.87v4.263a1 1 0 001.555.832l3.197-2.132a1 1 0 000-1.664z"/><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
+              Iniciar
+            </button>
+            <button id="btn-batch-stop" onclick="stopBatchSearch()"
+              class="px-4 py-2.5 bg-red-500 hover:bg-red-600 text-white font-medium text-sm rounded-lg transition hidden">
+              Detener
+            </button>
+          </div>
+        </div>
+        <div id="batch-progress" class="hidden">
+          <div class="bg-blue-50 border border-blue-200 rounded-lg px-4 py-3">
+            <div class="flex items-center justify-between mb-2">
+              <span id="batch-status-text" class="text-sm text-blue-800">Procesando...</span>
+              <span id="batch-status-count" class="text-xs text-blue-600 font-medium"></span>
+            </div>
+            <div class="w-full bg-blue-200 rounded-full h-2">
+              <div id="batch-progress-bar" class="bg-blue-600 h-2 rounded-full transition-all" style="width: 0%"></div>
+            </div>
+            <div id="batch-log" class="mt-2 text-xs text-blue-600 max-h-20 overflow-y-auto"></div>
+          </div>
         </div>
       </div>
     </div>
@@ -105,6 +171,35 @@
       </div>
     </div>
 
+    <!-- Batch Results -->
+    <div id="batch-results-section" class="hidden fade-in">
+      <div class="bg-white rounded-xl shadow-sm border border-gray-200">
+        <div class="px-4 py-3 border-b border-gray-200 flex items-center justify-between">
+          <div>
+            <span class="text-sm font-medium text-gray-700">Resultados consolidados</span>
+            <span id="batch-result-count" class="ml-2 text-xs bg-green-100 text-green-700 px-2 py-0.5 rounded-full font-medium"></span>
+          </div>
+          <div class="flex items-center gap-2">
+            <button onclick="openSettings()" id="btn-settings-batch" title="Configurar columnas de exportaci\u00f3n"
+              class="p-2 text-gray-400 hover:text-gray-600 hover:bg-gray-100 rounded-lg transition">
+              <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.066 2.573c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.573 1.066c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.066-2.573c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z"/><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"/></svg>
+            </button>
+            <button onclick="exportBatchToExcel()" id="btn-batch-export"
+              class="px-4 py-2 bg-green-600 hover:bg-green-700 text-white text-sm font-medium rounded-lg transition flex items-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed">
+              <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/></svg>
+              Exportar todo a Excel
+            </button>
+          </div>
+        </div>
+        <div class="table-container">
+          <table id="batch-results-table" class="w-full text-sm">
+            <thead id="batch-table-head" class="bg-gray-50 sticky top-0 z-10"></thead>
+            <tbody id="batch-table-body" class="divide-y divide-gray-100"></tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+
   </main>
 
   <!-- Settings Modal -->
@@ -146,6 +241,7 @@
     var SRN_FIELD = { key: '__SRN', label: 'SRN' };
 
     var LS_KEY = 'eudamed_field_settings';
+    var LS_FIELDS_KEY = 'eudamed_available_fields';
     var rawItems = [];
     var results = [];
     var abortCtrl = null;
@@ -155,6 +251,12 @@
     var BATCH_MS = 200;
     var PROXY = '/api/proxy?url=';
     var manufacturerAddress = '';
+    var batchSrnList = [];
+    var batchResults = [];
+    var batchRawItems = [];
+    var batchAbortCtrl = null;
+    var batchSearching = false;
+    var currentTab = 'single';
 
     var TRANSLATIONS = {
       RISK_CLASS_ID: {
@@ -234,6 +336,15 @@
     function persistSettings() {
       try { localStorage.setItem(LS_KEY, JSON.stringify(selectedExtra)); } catch (e) {}
     }
+    function loadAvailableFields() {
+      try {
+        var s = localStorage.getItem(LS_FIELDS_KEY);
+        return s ? JSON.parse(s) : [];
+      } catch (e) { return []; }
+    }
+    function persistAvailableFields() {
+      try { localStorage.setItem(LS_FIELDS_KEY, JSON.stringify(availableFields)); } catch (e) {}
+    }
 
     function discoverFields(item) {
       if (!item || typeof item !== 'object') return;
@@ -241,16 +352,23 @@
       defaultKeys[SRN_FIELD.key] = true;
       DEFAULT_FIELDS.forEach(function(f) { defaultKeys[f.key] = true; });
 
-      var found = [];
+      var existingKeys = {};
+      availableFields.forEach(function(f) { existingKeys[f.key] = true; });
+
+      var added = false;
       var keys = Object.keys(item);
       for (var i = 0; i < keys.length; i++) {
         var k = keys[i];
-        if (!defaultKeys[k]) {
-          found.push({ key: k, label: k.replace(/_/g, ' ').replace(/\b\w/g, function(c) { return c.toUpperCase(); }) });
+        if (!defaultKeys[k] && !existingKeys[k]) {
+          availableFields.push({ key: k, label: k.replace(/_/g, ' ').replace(/\b\w/g, function(c) { return c.toUpperCase(); }) });
+          existingKeys[k] = true;
+          added = true;
         }
       }
-      found.sort(function(a, b) { return a.label.localeCompare(b.label); });
-      availableFields = found;
+      if (added) {
+        availableFields.sort(function(a, b) { return a.label.localeCompare(b.label); });
+        persistAvailableFields();
+      }
     }
 
     function showStatus(msg, count) {
@@ -529,6 +647,10 @@
       persistSettings();
       setHeaders();
       renderTable();
+      if (batchResults.length > 0) {
+        setBatchHeaders();
+        renderBatchTable();
+      }
       closeSettings();
     }
 
@@ -583,7 +705,244 @@
     });
 
     selectedExtra = loadSettings();
+    availableFields = loadAvailableFields();
     setHeaders();
+
+    // ==================== TABS ====================
+    function switchTab(tab) {
+      currentTab = tab;
+      document.getElementById('tab-single').className = tab === 'single' ? 'px-6 py-3 text-sm tab-active transition' : 'px-6 py-3 text-sm tab-inactive transition';
+      document.getElementById('tab-batch').className = tab === 'batch' ? 'px-6 py-3 text-sm tab-active transition' : 'px-6 py-3 text-sm tab-inactive transition';
+      document.getElementById('panel-single').classList.toggle('hidden', tab !== 'single');
+      document.getElementById('panel-batch').classList.toggle('hidden', tab !== 'batch');
+      document.getElementById('results-section').classList.toggle('hidden', tab !== 'single');
+      document.getElementById('batch-results-section').classList.toggle('hidden', tab !== 'batch');
+    }
+
+    // ==================== BATCH FILE ====================
+    function handleBatchFile(event) {
+      var file = event.target.files[0];
+      if (!file) return;
+      document.getElementById('file-label').textContent = file.name;
+      var reader = new FileReader();
+      reader.onload = function(e) {
+        try {
+          var wb = XLSX.read(e.target.result, { type: 'array' });
+          var ws = wb.Sheets[wb.SheetNames[0]];
+          var data = XLSX.utils.sheet_to_json(ws, { header: 1 });
+          if (!data.length) { showError('El archivo est\u00e1 vac\u00edo.'); return; }
+          var headers = data[0].map(function(h) { return String(h || '').trim(); });
+          var select = document.getElementById('batch-col-select');
+          select.innerHTML = '<option value="">Detectar autom\u00e1ticamente</option>';
+          headers.forEach(function(h, i) {
+            if (h) select.innerHTML += '<option value="' + i + '">' + esc(h) + '</option>';
+          });
+          var srnCol = -1;
+          for (var i = 0; i < headers.length; i++) {
+            if (/(^SRN$|SINGLE.REGISTRATION|REGISTRATION.NUMBER|S\.R\.N)/i.test(headers[i])) { srnCol = i; break; }
+          }
+          if (srnCol === -1) {
+            for (var i = 0; i < headers.length; i++) {
+              if (/[A-Z]{2}-[A-Z]{2,3}-\d/.test(String(data[1] ? data[1][i] : ''))) { srnCol = i; break; }
+            }
+          }
+          if (srnCol >= 0) select.value = String(srnCol);
+          var srns = [];
+          for (var r = 1; r < data.length; r++) {
+            var val = String(data[r][srnCol >= 0 ? srnCol : 0] || '').trim();
+            if (val && /[A-Z]{2}-[A-Z]{2,3}-\d/.test(val)) srns.push(val);
+          }
+          batchSrnList = srns;
+          document.getElementById('btn-batch-start').disabled = srns.length === 0;
+          if (srns.length > 0) {
+            showBatchLog('Detectados ' + srns.length + ' SRN v\u00e1lidos.');
+          } else {
+            showBatchLog('No se detectaron SRN v\u00e1lidos en el archivo.');
+          }
+        } catch (err) {
+          showError('Error leyendo el archivo: ' + err.message);
+        }
+      };
+      reader.readAsArrayBuffer(file);
+    }
+
+    function downloadTemplate() {
+      var ws = XLSX.utils.aoa_to_sheet([['SRN'], ['CA-MF-000013010'], ['CN-MF-000028118']]);
+      ws['!cols'] = [{ wch: 20 }];
+      var wb = XLSX.utils.book_new();
+      XLSX.utils.book_append_sheet(wb, ws, 'SRN');
+      XLSX.writeFile(wb, 'Plantilla_SRN_EUDAMED.xlsx');
+    }
+
+    // ==================== BATCH SEARCH ====================
+    function showBatchLog(msg) {
+      var log = document.getElementById('batch-log');
+      log.innerHTML += '<div>' + esc(msg) + '</div>';
+      log.scrollTop = log.scrollHeight;
+    }
+
+    function setBatchProgress(current, total, msg) {
+      var pct = total > 0 ? Math.round((current / total) * 100) : 0;
+      document.getElementById('batch-progress-bar').style.width = pct + '%';
+      document.getElementById('batch-status-text').textContent = msg || 'Procesando...';
+      document.getElementById('batch-status-count').textContent = current + ' / ' + total + ' SRN';
+    }
+
+    async function startBatchSearch() {
+      if (!batchSrnList.length) return;
+      hideError();
+      batchResults = [];
+      batchRawItems = [];
+      batchAbortCtrl = new AbortController();
+      batchSearching = true;
+      document.getElementById('batch-progress').classList.remove('hidden');
+      document.getElementById('batch-results-section').classList.remove('hidden');
+      document.getElementById('btn-batch-start').classList.add('hidden');
+      document.getElementById('btn-batch-stop').classList.remove('hidden');
+      document.getElementById('batch-log').innerHTML = '';
+      setBatchProgress(0, batchSrnList.length, 'Iniciando...');
+      setBatchHeaders();
+      renderBatchTable();
+
+      for (var i = 0; i < batchSrnList.length; i++) {
+        if (!batchSearching) break;
+        var srn = batchSrnList[i];
+        setBatchProgress(i, batchSrnList.length, 'Procesando ' + srn + '...');
+        showBatchLog('[' + (i + 1) + '/' + batchSrnList.length + '] ' + srn);
+
+        try {
+          var baseUrl = 'https://api.datalake.sante.service.ec.europa.eu';
+          var nextUrl = baseUrl + '/eudamed/udi?MF_SRN=' + encodeURIComponent(srn) + '&format=json&api-version=v1.0';
+          var addr = '';
+
+          try {
+            var eUrl = 'https://ec.europa.eu/tools/eudamed/api/eos?page=0&pageSize=1&size=1&sort=srn,ASC&sort=versionNumber,DESC&languageIso2Code=en&srn=' + encodeURIComponent(srn);
+            var eData = await fetchRetry(eUrl, batchAbortCtrl.signal);
+            var eItems = (eData && eData.content) ? eData.content : [];
+            if (eItems.length > 0) {
+              var a = eItems[0];
+              if (a.geographicalAddress) {
+                addr = a.countryName ? a.geographicalAddress + ', ' + a.countryName : a.geographicalAddress;
+              } else {
+                var p = [];
+                if (a.streetName) p.push(a.streetName);
+                if (a.buildingNumber) p.push(a.buildingNumber);
+                if (a.postalZone) p.push(a.postalZone);
+                if (a.cityName) p.push(a.cityName);
+                if (a.countryName) p.push(a.countryName);
+                addr = p.join(', ');
+              }
+            }
+          } catch (e) { addr = ''; }
+
+          var srnCount = 0;
+          var srnFieldsDiscovered = false;
+          while (nextUrl) {
+            if (!batchSearching) break;
+            var data = await fetchRetry(nextUrl, batchAbortCtrl.signal);
+            var items = (data && data.value) ? data.value : [];
+            if (!items.length) break;
+            srnCount += items.length;
+            for (var j = 0; j < items.length; j++) {
+              var it = items[j];
+              if (!srnFieldsDiscovered) { discoverFields(it); srnFieldsDiscovered = true; }
+              batchRawItems.push(it);
+              batchResults.push(buildBatchRow(srn, addr, it));
+            }
+            renderBatchTable();
+            setBatchProgress(i + 1, batchSrnList.length, 'Procesando ' + srn + ': ' + srnCount + ' registros...');
+            if (data.nextLink && data.nextLink !== '') {
+              var nl = data.nextLink;
+              if (nl.indexOf('http') !== 0) nl = baseUrl + (nl.charAt(0) === '/' ? '' : '/') + nl;
+              nextUrl = nl;
+              await sleep(BATCH_MS);
+            } else { break; }
+          }
+          showBatchLog('  \u2713 ' + srn + ': ' + srnCount + ' registros');
+        } catch (e) {
+          showBatchLog('  \u2717 ' + srn + ': ' + e.message);
+        }
+        await sleep(BATCH_MS);
+      }
+
+      setBatchProgress(batchSrnList.length, batchSrnList.length, 'Completado');
+      showBatchLog('Total: ' + batchResults.length + ' registros de ' + batchSrnList.length + ' SRN');
+      batchSearching = false;
+      document.getElementById('btn-batch-start').classList.remove('hidden');
+      document.getElementById('btn-batch-stop').classList.add('hidden');
+    }
+
+    function stopBatchSearch() { batchSearching = false; }
+
+    function buildBatchRow(srn, addr, it) {
+      return [
+        srn,
+        it.BASIC_UDI || '',
+        it.PRIMARY_DI || '',
+        it.TRADE_NAME || '',
+        translateField('RISK_CLASS_ID', it.RISK_CLASS_ID),
+        it.MF_NAME || '',
+        addr,
+        it.REFERENCE || '',
+        String(it.NOMENCLATURE_CODE || '').trim()
+      ];
+    }
+
+    // ==================== BATCH TABLE ====================
+    function setBatchHeaders() {
+      var cols = getVisibleCols();
+      document.getElementById('batch-table-head').innerHTML = '<tr>' + cols.map(function(c) {
+        return '<th class="px-4 py-3 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider whitespace-nowrap">' + c.hdr + '</th>';
+      }).join('') + '</tr>';
+    }
+
+    function renderBatchTable() {
+      var tbody = document.getElementById('batch-table-body');
+      var cnt = document.getElementById('batch-result-count');
+      if (batchResults.length === 0) { tbody.innerHTML = ''; cnt.textContent = ''; return; }
+      cnt.textContent = batchResults.length + ' registros';
+      var cols = getVisibleCols();
+      tbody.innerHTML = batchResults.map(function(row, idx) {
+        return '<tr class="' + (idx % 2 === 0 ? 'bg-white' : 'bg-gray-50') + ' hover:bg-blue-50 transition">' +
+          cols.map(function(c) {
+            var val = '';
+            if (c.idx === -1) val = row[0];
+            else if (typeof c.idx === 'number') val = row[c.idx + 1] || '';
+            else val = getExtraValue(batchRawItems[idx], c.idx);
+            var v = esc(val);
+            var cls = (c.key === 'MF_ADDRESS')
+              ? 'px-4 py-2.5 text-gray-700 whitespace-nowrap'
+              : 'px-4 py-2.5 text-gray-700 whitespace-nowrap max-w-xs truncate';
+            return '<td class="' + cls + '" title="' + v + '">' + v + '</td>';
+          }).join('') + '</tr>';
+      }).join('');
+    }
+
+    // ==================== BATCH EXPORT ====================
+    function exportBatchToExcel() {
+      if (batchResults.length === 0) return;
+      var cols = getVisibleCols();
+      var data = batchResults.map(function(row, idx) {
+        var o = {};
+        cols.forEach(function(c) {
+          var val = '';
+          if (c.idx === -1) val = row[0];
+          else if (typeof c.idx === 'number') val = row[c.idx + 1] || '';
+          else val = getExtraValue(batchRawItems[idx], c.idx);
+          o[c.hdr] = val;
+        });
+        return o;
+      });
+      var ws = XLSX.utils.json_to_sheet(data);
+      ws['!cols'] = cols.map(function(c) {
+        var max = c.hdr.length;
+        data.forEach(function(row) { var l = String(row[c.hdr] || '').length; if (l > max) max = l; });
+        return { wch: Math.min(max + 2, 60) };
+      });
+      var wb = XLSX.utils.book_new();
+      XLSX.utils.book_append_sheet(wb, ws, 'Consolidado');
+      XLSX.writeFile(wb, 'EUDAMED_Consolidado_' + new Date().toISOString().slice(0, 10) + '.xlsx');
+    }
   </script>
 
 </body>
