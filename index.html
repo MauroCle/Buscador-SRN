@@ -55,7 +55,7 @@
           B&uacute;squeda simple
         </button>
         <button onclick="switchTab('batch')" id="tab-batch" class="px-6 py-3 text-sm tab-inactive transition">
-          B&uacute;squeda por lotes
+          B&uacute;squeda m&uacute;ltiple
         </button>
       </div>
 
@@ -247,8 +247,8 @@
     <div class="bg-white rounded-xl shadow-2xl w-full max-w-4xl max-h-[80vh] flex flex-col">
       <div class="px-6 py-4 border-b border-gray-200 flex items-center justify-between">
         <div>
-          <h2 class="text-lg font-semibold text-gray-800">Configuraci\u00f3n</h2>
-          <p class="text-xs text-gray-500 mt-0.5">Columnas, procesamiento por lote y exportaci\u00f3n a Excel</p>
+          <h2 class="text-lg font-semibold text-gray-800">Configuraci&oacute;n</h2>
+          <p class="text-xs text-gray-500 mt-0.5">Columnas, procesamiento m&uacute;ltiple y exportaci&oacute;n a Excel</p>
         </div>
         <button onclick="closeSettings()" class="p-1 hover:bg-gray-100 rounded-lg transition">
           <svg class="w-5 h-5 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/></svg>
@@ -302,32 +302,40 @@
 
     var TRANSLATIONS = {
       RISK_CLASS_ID: {
-        '-10': 'Not classified', '-206': 'Class III',
-        '-205': 'Class IIb', '-204': 'Class IIa',
-        '-203': 'Class I', '-154': 'Class I (legacy)',
-        '-53': 'AIMDD'
+        '-10': 'Class III', '-203': 'Class I', '-204': 'Class IIa', '-205': 'Class IIb',
+        '-154': 'AIMDD / Class I (legacy)',
+        '-155': 'IVD Annex II List A', '-156': 'IVD Annex II List B',
+        '-157': 'IVD General', '-219': 'IVD devices for self-testing',
+        '-199': 'Class A', '-200': 'Class B', '-201': 'Class C', '-202': 'Class D'
       },
       DEVICE_STATUS_TYPE_ID: {
-        '-11': 'On the market', '-12': 'No longer on the market',
-        '-13': 'Not intended for EU market'
+        '-11': 'On the EU market', '-12': 'No longer placed on the EU market',
+        '-13': 'Not intended for the EU market', '-790': 'Not intended for the EU market'
       },
       STATUS_ID: {
         '-1306': 'Active', '-1307': 'Inactive', '-1308': 'Withdrawn',
         '-1309': 'Suspended', '-1310': 'Draft'
       },
-      PLACED_ON_THE_MARKET_ID: {
-        '-192': 'Germany (DE)', '-193': 'France (FR)', '-194': 'Italy (IT)',
-        '-195': 'Spain (ES)', '-196': 'Netherlands (NL)', '-197': 'Belgium (BE)',
-        '-198': 'Austria (AT)', '-199': 'Poland (PL)', '-200': 'Ireland (IE)',
-        '-191': 'Other EU/EEA state'
-      },
       APPLICABLE_LEGISLATION_ID: {
         '-197': 'MDR (EU 2017/745)', '-198': 'IVDR (EU 2017/746)',
         '-53': 'MDD (93/42/EEC)', '-54': 'AIMDD (90/385/EEC)',
-        '-55': 'IVDD (98/79/EC)'
+        '-55': 'IVDD (98/79/EC)', '-3021': 'Unknown', '-3020': 'None'
+      },
+      MULTI_COMPONENT_ID: {
+        '-117': 'Procedure Pack which is a device in itself', '-541': 'Procedure Pack',
+        '-540': 'System', '-116': 'System which is a device in itself'
+      },
+      SPECIAL_DEVICE_TYPE_ID: {
+        '-46': 'Standard Rigid Gas Permeable (RGP) Contact Lenses',
+        '-1190': 'Spectacle lenses', '-1188': 'Made to order soft contact lenses',
+        '-43': 'Software', '-47': 'Software',
+        '-3030': 'Made to order Rigid Gas Permeable (RGP) contact lenses',
+        '-1189': 'Spectacle frames', '-1191': 'Ready-made reading spectacles',
+        '-44': 'Standard soft contact lenses'
       }
     };
     var BOOLEAN_FIELDS = ['SUTURES','STERILE','STERILIZATION','REUSABLE','REPROCESSED','SINGLE_USE'];
+    fetch('countries.json').then(function(r){return r.json()}).then(function(d){TRANSLATIONS.PLACED_ON_THE_MARKET_ID=d}).catch(function(){});
 
     function translateField(key, val, item) {
       if (val === null || val === undefined || val === '') return '';
@@ -422,7 +430,9 @@
       for (var i = 0; i < keys.length; i++) {
         var k = keys[i];
         if (!defaultKeys[k] && !existingKeys[k]) {
-          availableFields.push({ key: k, label: k.replace(/_/g, ' ').replace(/\b\w/g, function(c) { return c.toUpperCase(); }) });
+          var lbl = k.replace(/_/g, ' ').replace(/\b\w/g, function(c) { return c.toUpperCase(); });
+          if (k.endsWith('_ID')) lbl = lbl.replace(/ Id$/i, '');
+          availableFields.push({ key: k, label: lbl });
           existingKeys[k] = true;
           added = true;
         }
@@ -640,7 +650,7 @@
             else if (typeof c.idx === 'number') val = row[c.idx + 1] || '';
             else val = getExtraValue(rawItems[idx], c.idx);
             var v = esc(val);
-            var cls = (c.key === 'MF_ADDRESS')
+            var cls = (c.key === 'MF_ADDRESS' || (c.key && c.key.endsWith('_ID') && TRANSLATIONS[c.key]))
               ? 'px-4 py-2.5 text-gray-700 whitespace-nowrap'
               : 'px-4 py-2.5 text-gray-700 whitespace-nowrap max-w-xs truncate';
             return '<td class="' + cls + '" title="' + v + '">' + v + '</td>';
@@ -665,7 +675,7 @@
       var html = '';
 
       html += '<div class="border-b border-gray-200 pb-4 mb-4">';
-      html += '<p class="text-xs font-semibold text-gray-500 uppercase tracking-wider mb-3">Procesamiento por lote</p>';
+      html += '<p class="text-xs font-semibold text-gray-500 uppercase tracking-wider mb-3">Procesamiento m&uacute;ltiple</p>';
 
       html += '<div class="flex items-center gap-3 mb-2">';
       html += '<label class="toggle"><input type="checkbox" id="cfg-auto-upper" onchange="toggleSilentDisable(\'upper\')"><span class="toggle-slider"></span></label>';
@@ -1152,7 +1162,7 @@
             else if (typeof c.idx === 'number') val = row[c.idx + 1] || '';
             else val = getExtraValue(batchRawItems[idx], c.idx);
             var v = esc(val);
-            var cls = (c.key === 'MF_ADDRESS')
+            var cls = (c.key === 'MF_ADDRESS' || (c.key && c.key.endsWith('_ID') && TRANSLATIONS[c.key]))
               ? 'px-4 py-2.5 text-gray-700 whitespace-nowrap'
               : 'px-4 py-2.5 text-gray-700 whitespace-nowrap max-w-xs truncate';
             return '<td class="' + cls + '" title="' + v + '">' + v + '</td>';
