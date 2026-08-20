@@ -400,7 +400,11 @@
     function loadAvailableFields() {
       try {
         var s = localStorage.getItem(LS_FIELDS_KEY);
-        return s ? JSON.parse(s) : [];
+        var arr = s ? JSON.parse(s) : [];
+        arr.forEach(function(f) {
+          if (f.key && f.key.endsWith('_ID')) f.label = f.key.replace(/_/g, ' ').replace(/\b\w/g, function(c) { return c.toUpperCase(); }).replace(/ Id$/i, '');
+        });
+        return arr;
       } catch (e) { return []; }
     }
     function persistAvailableFields() {
