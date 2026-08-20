@@ -79,6 +79,28 @@
             </button>
           </div>
         </div>
+        <div class="mt-3">
+          <button onclick="document.getElementById('other-fields').classList.toggle('hidden'); this.querySelector('span').textContent = document.getElementById('other-fields').classList.contains('hidden') ? '\u25B6' : '\u25BC'" class="text-xs text-gray-500 hover:text-gray-700 transition flex items-center gap-1">
+            <span class="text-[10px]">&#9654;</span> Otras opciones de b&uacute;squeda
+          </button>
+          <div id="other-fields" class="hidden mt-2 flex gap-3 items-end">
+            <div>
+              <label class="block text-xs font-medium text-gray-500 mb-1">Buscar por campo</label>
+              <select id="search-field-select" class="px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none transition">
+                <option value="">Seleccionar campo...</option>
+                <option value="REFERENCE">Reference Catalogue Number</option>
+                <option value="PRIMARY_DI">Primary UDI-DI</option>
+                <option value="BASIC_UDI">Basic UDI-DI</option>
+                <option value="DEVICE_MODEL">Device Model</option>
+              </select>
+            </div>
+            <div class="flex-1">
+              <label class="block text-xs font-medium text-gray-500 mb-1">Valor</label>
+              <input id="search-field-value" type="text" placeholder="Valor a buscar..."
+                class="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none transition" />
+            </div>
+          </div>
+        </div>
       </div>
 
       <!-- Batch Search -->
@@ -480,8 +502,15 @@
     }
 
     function startSearch() {
+      var fieldSelect = document.getElementById('search-field-select');
+      var fieldValue = document.getElementById('search-field-value');
+      var selectedField = fieldSelect ? fieldSelect.value : '';
+      var selectedValue = fieldValue ? fieldValue.value.trim() : '';
       var srn = document.getElementById('srn-input').value.trim();
-      if (!srn) { showError('Introduce un SRN para buscar.'); return; }
+
+      if (!srn && !selectedField) { showError('Introduce un SRN o selecciona un campo de b\u00fasqueda.'); return; }
+      if (!srn && selectedField && !selectedValue) { showError('Introduce un valor para buscar.'); return; }
+
       hideError();
       rawItems = [];
       results = [];
@@ -491,7 +520,14 @@
       setHeaders();
       renderTable();
       setLoading('Descargando datos de EUDAMED...');
-      search(srn);
+
+      if (srn && selectedField && selectedValue) {
+        searchCombined(srn, selectedField, selectedValue);
+      } else if (selectedField && selectedValue) {
+        searchByField(selectedField, selectedValue);
+      } else {
+        search(srn);
+      }
     }
 
     function stopSearch() { if (abortCtrl) abortCtrl.abort(); }
@@ -552,6 +588,125 @@
         document.getElementById('results-table').classList.remove('hidden');
       } else {
         showEmpty('No se encontraron resultados para este SRN');
+      }
+      setSearchActive(false);
+      abortCtrl = null;
+    }
+
+    async function searchByField(field, value) {
+      var baseUrl = 'https://api.datalake.sante.service.ec.europa.eu';
+      var nextUrl = baseUrl + '/eudamed/udi?' + field + '=' +
+        encodeURIComponent(value) + '&format=json&api-version=v1.0';
+
+      try {
+        while (nextUrl) {
+          if (!abortCtrl) break;
+          showStatus('Descargando datos de EUDAMED...', results.length + ' registros');
+          var data = await fetchRetry(nextUrl, abortCtrl.signal);
+          var items = (data && data.value) ? data.value : [];
+          if (!items.length) break;
+
+          if (results.length === 0 && items[0]) {
+            discoverFields(items[0]);
+          }
+
+          for (var i = 0; i < items.length; i++) {
+            var it = items[i];
+            rawItems.push(it);
+            results.push(buildRow(it.MF_SRN || '', it));
+          }
+
+          renderTable();
+          setLoading(results.length + ' registros cargados. ' +
+            (data.nextLink ? 'Descargando siguiente p\u00e1gina...' : 'Procesando...'));
+
+          if (data.nextLink && data.nextLink !== '') {
+            var nl = data.nextLink;
+            if (nl.indexOf('http') !== 0) nl = baseUrl + (nl.charAt(0) === '/' ? '' : '/') + nl;
+            nextUrl = nl;
+            await sleep(BATCH_MS);
+          } else { break; }
+        }
+
+        if (!abortCtrl) {
+          showStatus('B\u00fasqueda cancelada', results.length + ' registros');
+        } else if (results.length > 0) {
+          showStatus('Completado', results.length + ' registros cargados.');
+        }
+        setTimeout(hideStatus, 3000);
+      } catch (e) {
+        if (e.name !== 'AbortError' && results.length === 0) {
+          showError('Error: ' + e.message);
+          hideStatus();
+        }
+      }
+
+      if (results.length > 0) {
+        document.getElementById('empty-state').classList.add('hidden');
+        document.getElementById('results-table').classList.remove('hidden');
+      } else {
+        showEmpty('No se encontraron resultados');
+      }
+      setSearchActive(false);
+      abortCtrl = null;
+    }
+
+    async function searchCombined(srn, field, value) {
+      var baseUrl = 'https://api.datalake.sante.service.ec.europa.eu';
+      var nextUrl = baseUrl + '/eudamed/udi?MF_SRN=' + encodeURIComponent(srn) +
+        '&' + field + '=' + encodeURIComponent(value) + '&format=json&api-version=v1.0';
+
+      setLoading('Obteniendo direcci\u00f3n registrada...');
+      await fetchAddress(srn);
+
+      try {
+        while (nextUrl) {
+          if (!abortCtrl) break;
+          showStatus('Descargando datos de EUDAMED...', results.length + ' registros');
+          var data = await fetchRetry(nextUrl, abortCtrl.signal);
+          var items = (data && data.value) ? data.value : [];
+          if (!items.length) break;
+
+          if (results.length === 0 && items[0]) {
+            discoverFields(items[0]);
+          }
+
+          for (var i = 0; i < items.length; i++) {
+            var it = items[i];
+            rawItems.push(it);
+            results.push(buildRow(srn, it));
+          }
+
+          renderTable();
+          setLoading(results.length + ' registros cargados. ' +
+            (data.nextLink ? 'Descargando siguiente p\u00e1gina...' : 'Procesando...'));
+
+          if (data.nextLink && data.nextLink !== '') {
+            var nl = data.nextLink;
+            if (nl.indexOf('http') !== 0) nl = baseUrl + (nl.charAt(0) === '/' ? '' : '/') + nl;
+            nextUrl = nl;
+            await sleep(BATCH_MS);
+          } else { break; }
+        }
+
+        if (!abortCtrl) {
+          showStatus('B\u00fasqueda cancelada', results.length + ' registros');
+        } else if (results.length > 0) {
+          showStatus('Completado', results.length + ' registros cargados.');
+        }
+        setTimeout(hideStatus, 3000);
+      } catch (e) {
+        if (e.name !== 'AbortError' && results.length === 0) {
+          showError('Error: ' + e.message);
+          hideStatus();
+        }
+      }
+
+      if (results.length > 0) {
+        document.getElementById('empty-state').classList.add('hidden');
+        document.getElementById('results-table').classList.remove('hidden');
+      } else {
+        showEmpty('No se encontraron resultados para esta combinaci\u00f3n');
       }
       setSearchActive(false);
       abortCtrl = null;
@@ -861,6 +1016,9 @@
     function sleep(ms) { return new Promise(function(r) { setTimeout(r, ms); }); }
 
     document.getElementById('srn-input').addEventListener('keydown', function(e) {
+      if (e.key === 'Enter' && !searching) startSearch();
+    });
+    document.getElementById('search-field-value').addEventListener('keydown', function(e) {
       if (e.key === 'Enter' && !searching) startSearch();
     });
     document.getElementById('settings-modal').addEventListener('click', function(e) {
