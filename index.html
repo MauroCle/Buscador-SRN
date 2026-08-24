@@ -1120,7 +1120,10 @@
     loadBatchConfig();
     availableFields = loadAvailableFields();
     ACTOR_FIELDS.forEach(function(af) {
-      if (!availableFields.some(function(f) { return f.key === af.key; })) {
+      var existing = availableFields.find(function(f) { return f.key === af.key; });
+      if (existing) {
+        existing.label = af.label;
+      } else {
         availableFields.push(af);
       }
     });
@@ -1375,6 +1378,7 @@
           showBatchLog('  \u2713 ' + srn + ': ' + srnCount + ' registros');
           showBatchLog('  Obteniendo datos del operador econ\u00f3mico...');
           await fetchActorInfo(srn, batchAbortCtrl.signal, batchRawItems);
+          renderBatchTable();
         } catch (e) {
           showBatchLog('  \u2717 ' + srn + ': ' + e.message);
         }
