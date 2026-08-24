@@ -39,9 +39,15 @@
         <h1 class="text-xl font-bold text-gray-800">Buscador SRN - EUDAMED</h1>
         <p class="text-sm text-gray-500">Consulta dispositivos m&eacute;dicos por Single Registration Number</p>
       </div>
-      <div class="text-xs text-gray-400 text-right">
-        <div>v5.1</div>
-        <div>Data Lake EUDAMED</div>
+      <div class="text-xs text-gray-400 text-right flex items-center gap-3">
+        <div>
+          <div>v5.2.1</div>
+          <div>Data Lake EUDAMED</div>
+        </div>
+        <button onclick="window.open('novedades.html', '_blank')" class="relative px-3 py-1.5 text-sm text-blue-600 hover:text-blue-800 hover:bg-blue-50 rounded-lg font-medium transition">
+          Novedades
+          <span id="changelog-badge" class="hidden absolute -top-1.5 -right-1.5 bg-red-500 text-white text-[9px] font-bold px-1.5 py-0.5 rounded-full leading-none">Nuevo</span>
+        </button>
       </div>
     </div>
   </header>
@@ -290,6 +296,10 @@
   </div>
 
   <script>
+    var APP_VERSION = 'v5.2.1';
+    var LS_CHANGELOG_KEY = 'eudamed_changelog_viewed';
+    var CHANGELOG_VERSIONS = ['v5.2.1', 'v5.2'];
+
     var DEFAULT_FIELDS = [
       { key: 'BASIC_UDI',     label: 'Basic UDI-DI' },
       { key: 'PRIMARY_DI',    label: 'Primary UDI-DI' },
@@ -321,6 +331,12 @@
     var batchAbortCtrl = null;
     var batchSearching = false;
     var currentTab = 'single';
+    var fetchActorCache = {};
+    var ACTOR_FIELDS = [
+      { key: '__VAT', label: 'European VAT Number' },
+      { key: '__EORI', label: 'EORI' },
+      { key: '__TRADE_REGISTER', label: 'Trade Register Number' }
+    ];
 
     var TRANSLATIONS = {
       RISK_CLASS_ID: {
@@ -358,6 +374,30 @@
     };
     var BOOLEAN_FIELDS = ['SUTURES','STERILE','STERILIZATION','REUSABLE','REPROCESSED','SINGLE_USE'];
     fetch('countries.json').then(function(r){return r.json()}).then(function(d){TRANSLATIONS.PLACED_ON_THE_MARKET_ID=d}).catch(function(){});
+
+    async function fetchActorInfo(srn, signal, items) {
+      if (fetchActorCache[srn]) return fetchActorCache[srn];
+      if (!items) items = rawItems;
+      try {
+        var item = null;
+        for (var i = 0; i < items.length; i++) {
+          if (items[i].MF_SRN === srn && items[i].BASIC_UDI_DATA_UUID) { item = items[i]; break; }
+        }
+        if (!item) return null;
+        var basicData = await fetchRetry('https://ec.europa.eu/tools/eudamed/api/devices/basicUdiData/' + item.BASIC_UDI_DATA_UUID + '?languageIso2Code=en', signal);
+        var mfgUuid = basicData && basicData.manufacturer && basicData.manufacturer.uuid;
+        if (!mfgUuid) return null;
+        var actorData = await fetchRetry('https://ec.europa.eu/tools/eudamed/api/actors/' + mfgUuid + '/publicInformation?languageIso2Code=en', signal);
+        var view = actorData && actorData.actorDataPublicView;
+        var result = {
+          vat: view ? (view.europeanVatNumber || '') : '',
+          eori: view ? (view.eori || '') : '',
+          tradeRegister: view ? (view.tradeRegister || '') : ''
+        };
+        fetchActorCache[srn] = result;
+        return result;
+      } catch (e) { return null; }
+    }
 
     function translateField(key, val, item) {
       if (val === null || val === undefined || val === '') return '';
@@ -447,6 +487,7 @@
       var defaultKeys = {};
       defaultKeys[SRN_FIELD.key] = true;
       DEFAULT_FIELDS.forEach(function(f) { defaultKeys[f.key] = true; });
+      ACTOR_FIELDS.forEach(function(f) { defaultKeys[f.key] = true; });
 
       var existingKeys = {};
       availableFields.forEach(function(f) { existingKeys[f.key] = true; });
@@ -515,6 +556,7 @@
       rawItems = [];
       results = [];
       manufacturerAddress = '';
+      fetchActorCache = {};
       abortCtrl = new AbortController();
       setSearchActive(true);
       setHeaders();
@@ -583,6 +625,12 @@
         }
       }
 
+      if (results.length > 0 && abortCtrl) {
+        showStatus('Obteniendo informaci\u00f3n del operador econ\u00f3mico...', '');
+        await fetchActorInfo(srn, abortCtrl.signal, rawItems);
+        renderTable();
+      }
+
       if (results.length > 0) {
         document.getElementById('empty-state').classList.add('hidden');
         document.getElementById('results-table').classList.remove('hidden');
@@ -638,6 +686,22 @@
         if (e.name !== 'AbortError' && results.length === 0) {
           showError('Error: ' + e.message);
           hideStatus();
+        }
+      }
+
+      if (results.length > 0 && abortCtrl) {
+        var seenSrns = {};
+        for (var i = 0; i < rawItems.length; i++) {
+          var sr = rawItems[i].MF_SRN;
+          if (sr && !seenSrns[sr]) seenSrns[sr] = true;
+        }
+        var srnList = Object.keys(seenSrns);
+        if (srnList.length > 0) {
+          showStatus('Obteniendo informaci\u00f3n de operadores econ\u00f3micos...', srnList.length + ' operadores');
+          for (var i = 0; i < srnList.length; i++) {
+            await fetchActorInfo(srnList[i], abortCtrl.signal, rawItems);
+          }
+          renderTable();
         }
       }
 
@@ -702,6 +766,12 @@
         }
       }
 
+      if (results.length > 0 && abortCtrl) {
+        showStatus('Obteniendo informaci\u00f3n del operador econ\u00f3mico...', '');
+        await fetchActorInfo(srn, abortCtrl.signal, rawItems);
+        renderTable();
+      }
+
       if (results.length > 0) {
         document.getElementById('empty-state').classList.add('hidden');
         document.getElementById('results-table').classList.remove('hidden');
@@ -748,6 +818,13 @@
 
     function getExtraValue(item, key) {
       if (key === '__SRN') return '';
+      if (key === '__VAT' || key === '__EORI' || key === '__TRADE_REGISTER') {
+        var cached = fetchActorCache[item.MF_SRN];
+        if (!cached) return '';
+        if (key === '__VAT') return cached.vat;
+        if (key === '__EORI') return cached.eori;
+        return cached.tradeRegister;
+      }
       if (key === 'MF_ADDRESS') return manufacturerAddress;
       var v = item[key];
       if (v === null || v === undefined) return '';
@@ -933,6 +1010,20 @@
       document.getElementById('settings-modal').classList.add('hidden');
     }
 
+    // ==================== CHANGELOG ====================
+    function hasUnreadChangelog() {
+      try {
+        var lastViewed = localStorage.getItem(LS_CHANGELOG_KEY);
+        if (!lastViewed) return CHANGELOG_VERSIONS.length > 0;
+        return lastViewed !== CHANGELOG_VERSIONS[0];
+      } catch (e) { return true; }
+    }
+
+    function updateChangelogBadge() {
+      var badge = document.getElementById('changelog-badge');
+      if (badge) badge.classList.toggle('hidden', !hasUnreadChangelog());
+    }
+
     function filterExtraFields(query) {
       var q = query.toLowerCase();
       var items = document.querySelectorAll('#extra-fields-list .check-item');
@@ -1028,7 +1119,15 @@
     selectedExtra = loadSettings();
     loadBatchConfig();
     availableFields = loadAvailableFields();
+    ACTOR_FIELDS.forEach(function(af) {
+      if (!availableFields.some(function(f) { return f.key === af.key; })) {
+        availableFields.push(af);
+      }
+    });
+    availableFields.sort(function(a, b) { return a.label.localeCompare(b.label); });
+    persistAvailableFields();
     setHeaders();
+    updateChangelogBadge();
 
     // ==================== TABS ====================
     function switchTab(tab) {
@@ -1209,6 +1308,7 @@
       batchRawItems = [];
       batchAbortCtrl = new AbortController();
       batchSearching = true;
+      fetchActorCache = {};
       document.getElementById('batch-progress').classList.remove('hidden');
       document.getElementById('batch-results-section').classList.remove('hidden');
       document.getElementById('btn-batch-start').classList.add('hidden');
@@ -1273,6 +1373,8 @@
             } else { break; }
           }
           showBatchLog('  \u2713 ' + srn + ': ' + srnCount + ' registros');
+          showBatchLog('  Obteniendo datos del operador econ\u00f3mico...');
+          await fetchActorInfo(srn, batchAbortCtrl.signal, batchRawItems);
         } catch (e) {
           showBatchLog('  \u2717 ' + srn + ': ' + e.message);
         }

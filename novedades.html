@@ -1,0 +1,66 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Novedades - Buscador SRN EUDAMED</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <style>
+    body { font-family: 'Segoe UI', system-ui, -apple-system, sans-serif; }
+  </style>
+</head>
+<body class="bg-gray-50 min-h-screen">
+
+  <header class="bg-white border-b border-gray-200 shadow-sm">
+    <div class="max-w-3xl mx-auto px-4 py-4 flex items-center justify-between">
+      <div>
+        <h1 class="text-xl font-bold text-gray-800">Novedades</h1>
+        <p class="text-sm text-gray-500">Cambios importantes en cada versi&oacute;n</p>
+      </div>
+      <a href="index.html" class="px-4 py-2 text-sm text-blue-600 hover:text-blue-800 hover:bg-blue-50 rounded-lg font-medium transition">
+        &larr; Volver al Buscador
+      </a>
+    </div>
+  </header>
+
+  <main class="max-w-3xl mx-auto px-4 py-8">
+    <div id="changelog-list" class="space-y-6"></div>
+  </main>
+
+  <script>
+    var LS_CHANGELOG_KEY = 'eudamed_changelog_viewed';
+    var CHANGELOG = [
+      { date: '24/08/2026', version: 'v5.2.1', text: 'Secci\u00f3n de Novedades para registrar cambios importantes; correcci\u00f3n de formato de columnas' },
+      { date: '24/08/2026', version: 'v5.2', text: 'Columnas opcionales VAT, EORI y Trade Register del operador econ\u00f3mico' }
+    ];
+
+    function esc(s) {
+      return s.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
+    }
+
+    function renderChangelog() {
+      var container = document.getElementById('changelog-list');
+      var html = '';
+      CHANGELOG.forEach(function(entry, idx) {
+        var borderColor = idx === 0 ? 'border-blue-500' : 'border-gray-300';
+        html += '<div class="border-l-4 ' + borderColor + ' pl-5">';
+        html += '<div class="flex items-center gap-3 mb-2">';
+        html += '<span class="text-sm font-bold text-blue-700 bg-blue-100 px-2 py-0.5 rounded">' + esc(entry.version) + '</span>';
+        html += '<span class="text-sm text-gray-400">' + esc(entry.date) + '</span>';
+        html += '</div>';
+        html += '<p class="text-gray-700 leading-relaxed">' + esc(entry.text) + '</p>';
+        html += '</div>';
+      });
+      container.innerHTML = html;
+    }
+
+    function markAsViewed() {
+      try { localStorage.setItem(LS_CHANGELOG_KEY, CHANGELOG[0].version); } catch (e) {}
+    }
+
+    renderChangelog();
+    markAsViewed();
+  </script>
+
+</body>
+</html>
