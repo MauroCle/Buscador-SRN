@@ -41,10 +41,10 @@
       </div>
       <div class="text-xs text-gray-400 text-right flex items-center gap-3">
         <div>
-          <div>v5.2.1</div>
+          <div>v5.2.2</div>
           <div>Data Lake EUDAMED</div>
         </div>
-        <button onclick="window.open('novedades.html', '_blank')" class="relative px-3 py-1.5 text-sm text-blue-600 hover:text-blue-800 hover:bg-blue-50 rounded-lg font-medium transition">
+        <button onclick="markChangelogRead(); window.open('novedades.html', '_blank')" class="relative px-3 py-1.5 text-sm text-blue-600 hover:text-blue-800 hover:bg-blue-50 rounded-lg font-medium transition">
           Novedades
           <span id="changelog-badge" class="hidden absolute -top-1.5 -right-1.5 bg-red-500 text-white text-[9px] font-bold px-1.5 py-0.5 rounded-full leading-none">Nuevo</span>
         </button>
@@ -296,9 +296,9 @@
   </div>
 
   <script>
-    var APP_VERSION = 'v5.2.1';
+    var APP_VERSION = 'v5.2.2';
     var LS_CHANGELOG_KEY = 'eudamed_changelog_viewed';
-    var CHANGELOG_VERSIONS = ['v5.2.1', 'v5.2'];
+    var CHANGELOG_VERSIONS = ['v5.2.2', 'v5.2.1', 'v5.2'];
 
     var DEFAULT_FIELDS = [
       { key: 'BASIC_UDI',     label: 'Basic UDI-DI' },
@@ -321,7 +321,7 @@
     var searching = false;
     var availableFields = [];
     var selectedExtra = [];
-    var batchConfig = { autoUpper: false, autoUpperSilent: false, autoDedup: false, autoDedupSilent: false };
+    var batchConfig = { autoUpper: false, autoUpperSilent: false, autoDedup: false, autoDedupSilent: false, parallel: true };
     var BATCH_MS = 200;
     var PROXY = '/api/proxy?url=';
     var manufacturerAddress = '';
@@ -933,6 +933,12 @@
       html += '<label for="cfg-dedup-silent" class="text-xs text-gray-500">No preguntar (mantener duplicados)</label>';
       html += '</div>';
 
+      html += '<div class="flex items-center gap-3 mb-2">';
+      html += '<label class="toggle"><input type="checkbox" id="cfg-parallel"><span class="toggle-slider"></span></label>';
+      html += '<div><p class="text-sm text-gray-700 font-medium">Procesamiento paralelo</p>';
+      html += '<p class="text-xs text-gray-400">Procesa 5 SRNs simult\u00e1neamente</p></div>';
+      html += '</div>';
+
       html += '</div>';
 
       html += '<div class="grid grid-cols-2 gap-4">';
@@ -985,6 +991,7 @@
       document.getElementById('cfg-upper-silent').checked = batchConfig.autoUpperSilent;
       document.getElementById('cfg-auto-dedup').checked = batchConfig.autoDedup;
       document.getElementById('cfg-dedup-silent').checked = batchConfig.autoDedupSilent;
+      document.getElementById('cfg-parallel').checked = batchConfig.parallel;
       toggleSilentDisable('upper');
       toggleSilentDisable('dedup');
     }
@@ -1024,6 +1031,11 @@
       if (badge) badge.classList.toggle('hidden', !hasUnreadChangelog());
     }
 
+    function markChangelogRead() {
+      try { localStorage.setItem(LS_CHANGELOG_KEY, APP_VERSION); } catch (e) {}
+      updateChangelogBadge();
+    }
+
     function filterExtraFields(query) {
       var q = query.toLowerCase();
       var items = document.querySelectorAll('#extra-fields-list .check-item');
@@ -1043,6 +1055,7 @@
       batchConfig.autoUpperSilent = document.getElementById('cfg-upper-silent').checked;
       batchConfig.autoDedup = document.getElementById('cfg-auto-dedup').checked;
       batchConfig.autoDedupSilent = document.getElementById('cfg-dedup-silent').checked;
+      batchConfig.parallel = document.getElementById('cfg-parallel').checked;
       persistBatchConfig();
       setHeaders();
       renderTable();
@@ -1056,13 +1069,14 @@
     function resetSettings() {
       selectedExtra = [];
       persistSettings();
-      batchConfig = { autoUpper: false, autoUpperSilent: false, autoDedup: false, autoDedupSilent: false };
+      batchConfig = { autoUpper: false, autoUpperSilent: false, autoDedup: false, autoDedupSilent: false, parallel: true };
       persistBatchConfig();
       if (settingsBuilt) {
         document.getElementById('cfg-auto-upper').checked = false;
         document.getElementById('cfg-upper-silent').checked = false;
         document.getElementById('cfg-auto-dedup').checked = false;
         document.getElementById('cfg-dedup-silent').checked = false;
+        document.getElementById('cfg-parallel').checked = true;
         toggleSilentDisable('upper');
         toggleSilentDisable('dedup');
       }
@@ -1321,69 +1335,80 @@
       setBatchHeaders();
       renderBatchTable();
 
-      for (var i = 0; i < batchSrnList.length; i++) {
-        if (!batchSearching) break;
-        var srn = batchSrnList[i];
-        setBatchProgress(i, batchSrnList.length, 'Procesando ' + srn + '...');
-        showBatchLog('[' + (i + 1) + '/' + batchSrnList.length + '] ' + srn);
+      var batchIdx = 0;
+      var completedCount = 0;
 
-        try {
-          var baseUrl = 'https://api.datalake.sante.service.ec.europa.eu';
-          var nextUrl = baseUrl + '/eudamed/udi?MF_SRN=' + encodeURIComponent(srn) + '&format=json&api-version=v1.0';
-          var addr = '';
+      async function processOneSrN() {
+        while (batchIdx < batchSrnList.length && batchSearching) {
+          var i = batchIdx++;
+          var srn = batchSrnList[i];
+          setBatchProgress(completedCount, batchSrnList.length, 'Procesando ' + srn + '...');
+          showBatchLog('[' + (i + 1) + '/' + batchSrnList.length + '] ' + srn);
 
           try {
-            var eUrl = 'https://ec.europa.eu/tools/eudamed/api/eos?page=0&pageSize=1&size=1&sort=srn,ASC&sort=versionNumber,DESC&languageIso2Code=en&srn=' + encodeURIComponent(srn);
-            var eData = await fetchRetry(eUrl, batchAbortCtrl.signal);
-            var eItems = (eData && eData.content) ? eData.content : [];
-            if (eItems.length > 0) {
-              var a = eItems[0];
-              if (a.geographicalAddress) {
-                addr = a.countryName ? a.geographicalAddress + ', ' + a.countryName : a.geographicalAddress;
-              } else {
-                var p = [];
-                if (a.streetName) p.push(a.streetName);
-                if (a.buildingNumber) p.push(a.buildingNumber);
-                if (a.postalZone) p.push(a.postalZone);
-                if (a.cityName) p.push(a.cityName);
-                if (a.countryName) p.push(a.countryName);
-                addr = p.join(', ');
-              }
-            }
-          } catch (e) { addr = ''; }
+            var baseUrl = 'https://api.datalake.sante.service.ec.europa.eu';
+            var nextUrl = baseUrl + '/eudamed/udi?MF_SRN=' + encodeURIComponent(srn) + '&format=json&api-version=v1.0';
+            var addr = '';
 
-          var srnCount = 0;
-          var srnFieldsDiscovered = false;
-          while (nextUrl) {
-            if (!batchSearching) break;
-            var data = await fetchRetry(nextUrl, batchAbortCtrl.signal);
-            var items = (data && data.value) ? data.value : [];
-            if (!items.length) break;
-            srnCount += items.length;
-            for (var j = 0; j < items.length; j++) {
-              var it = items[j];
-              if (!srnFieldsDiscovered) { discoverFields(it); srnFieldsDiscovered = true; }
-              batchRawItems.push(it);
-              batchResults.push(buildBatchRow(srn, addr, it));
+            try {
+              var eUrl = 'https://ec.europa.eu/tools/eudamed/api/eos?page=0&pageSize=1&size=1&sort=srn,ASC&sort=versionNumber,DESC&languageIso2Code=en&srn=' + encodeURIComponent(srn);
+              var eData = await fetchRetry(eUrl, batchAbortCtrl.signal);
+              var eItems = (eData && eData.content) ? eData.content : [];
+              if (eItems.length > 0) {
+                var a = eItems[0];
+                if (a.geographicalAddress) {
+                  addr = a.countryName ? a.geographicalAddress + ', ' + a.countryName : a.geographicalAddress;
+                } else {
+                  var p = [];
+                  if (a.streetName) p.push(a.streetName);
+                  if (a.buildingNumber) p.push(a.buildingNumber);
+                  if (a.postalZone) p.push(a.postalZone);
+                  if (a.cityName) p.push(a.cityName);
+                  if (a.countryName) p.push(a.countryName);
+                  addr = p.join(', ');
+                }
+              }
+            } catch (e) { addr = ''; }
+
+            var srnCount = 0;
+            while (nextUrl) {
+              if (!batchSearching) break;
+              var data = await fetchRetry(nextUrl, batchAbortCtrl.signal);
+              var items = (data && data.value) ? data.value : [];
+              if (!items.length) break;
+              srnCount += items.length;
+              for (var j = 0; j < items.length; j++) {
+                var it = items[j];
+                discoverFields(it);
+                batchRawItems.push(it);
+                batchResults.push(buildBatchRow(srn, addr, it));
+              }
+              setBatchProgress(completedCount, batchSrnList.length, srn + ': ' + srnCount + ' registros...');
+              if (data.nextLink && data.nextLink !== '') {
+                var nl = data.nextLink;
+                if (nl.indexOf('http') !== 0) nl = baseUrl + (nl.charAt(0) === '/' ? '' : '/') + nl;
+                nextUrl = nl;
+                await sleep(BATCH_MS);
+              } else { break; }
             }
-            renderBatchTable();
-            setBatchProgress(i + 1, batchSrnList.length, 'Procesando ' + srn + ': ' + srnCount + ' registros...');
-            if (data.nextLink && data.nextLink !== '') {
-              var nl = data.nextLink;
-              if (nl.indexOf('http') !== 0) nl = baseUrl + (nl.charAt(0) === '/' ? '' : '/') + nl;
-              nextUrl = nl;
-              await sleep(BATCH_MS);
-            } else { break; }
+            showBatchLog('  \u2713 ' + srn + ': ' + srnCount + ' registros');
+            showBatchLog('  Obteniendo datos del operador econ\u00f3mico...');
+            await fetchActorInfo(srn, batchAbortCtrl.signal, batchRawItems);
+          } catch (e) {
+            showBatchLog('  \u2717 ' + srn + ': ' + e.message);
           }
-          showBatchLog('  \u2713 ' + srn + ': ' + srnCount + ' registros');
-          showBatchLog('  Obteniendo datos del operador econ\u00f3mico...');
-          await fetchActorInfo(srn, batchAbortCtrl.signal, batchRawItems);
+          completedCount++;
           renderBatchTable();
-        } catch (e) {
-          showBatchLog('  \u2717 ' + srn + ': ' + e.message);
+          setBatchProgress(completedCount, batchSrnList.length, 'Completado: ' + completedCount + '/' + batchSrnList.length);
         }
-        await sleep(BATCH_MS);
       }
+
+      var workers = [];
+      var BATCH_CONCURRENCY = batchConfig.parallel ? 5 : 1;
+      for (var w = 0; w < BATCH_CONCURRENCY; w++) {
+        workers.push(processOneSrN());
+      }
+      await Promise.all(workers);
 
       setBatchProgress(batchSrnList.length, batchSrnList.length, 'Completado');
       showBatchLog('Total: ' + batchResults.length + ' registros de ' + batchSrnList.length + ' SRN');
