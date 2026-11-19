@@ -73,9 +73,9 @@
     body.theme-dark .text-blue-800, body.theme-dark .text-blue-700 { color: #bfdbfe; }
     body.theme-dark .text-blue-600 { color: #93c5fd; }
     body.theme-dark .text-green-700 { color: #6ee7b7; }
-    body.theme-dark .text-red-800 { color: #fca5a5; }
-    body.theme-dark input[type="text"]:not(#lang-select), body.theme-dark select:not(#lang-select) { background-color: #0f172a; color: #e2e8f0; border-color: #334155; }
-    body.theme-dark input::placeholder { color: #64748b; }
+    body.theme-dark .text-red-600, body.theme-dark .text-red-800 { color: #fca5a5; }
+    body.theme-dark input[type="text"]:not(#lang-select), body.theme-dark textarea, body.theme-dark select:not(#lang-select) { background-color: #0f172a; color: #e2e8f0; border-color: #334155; }
+    body.theme-dark input::placeholder, body.theme-dark textarea::placeholder { color: #64748b; }
     body.theme-dark select:not(#lang-select) option { color: #e2e8f0; background-color: #0f172a; }
     body.theme-dark [class*="hover:bg-gray-"]:hover { background-color: #1e293b !important; }
     body.theme-dark [class*="hover:text-gray-"]:hover { color: #f1f5f9 !important; }
@@ -114,7 +114,7 @@
       </div>
       <div class="flex items-center gap-2 shrink-0">
         <div class="hidden md:block text-right text-xs hdr-meta leading-tight">
-          <div>v5.3</div>
+          <div>v5.3.1</div>
           <div>Data Lake EUDAMED</div>
         </div>
         <div class="relative flex items-center">
@@ -331,6 +331,16 @@
 
   </main>
 
+  <!-- Floating bug report button -->
+  <button type="button" onclick="openReportModal()" data-i18n-title="report.title" title="Report a bug" class="fixed bottom-5 right-5 z-40 flex items-center gap-2 px-4 py-3 bg-blue-600 hover:bg-blue-700 text-white rounded-full shadow-xl shadow-blue-900/25 hover:shadow-blue-900/40 transition focus:outline-none focus:ring-4 focus:ring-blue-300">
+    <svg class="w-5 h-5 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-linecap="round" stroke-linejoin="round" stroke-width="2">
+      <path d="M12 8v4m0 4h.01"></path>
+      <path d="M12 2a7 7 0 00-7 7v3a7 7 0 0014 0V9a7 7 0 00-7-7z"></path>
+      <path d="M5 9h14M5 15l-2 2m16-2 2 2"></path>
+    </svg>
+    <span class="hidden sm:inline text-sm font-medium" data-i18n="report.button">Report a bug</span>
+  </button>
+
   <!-- Uppercase Confirm Modal -->
   <div id="upper-modal" class="hidden fixed inset-0 z-50 modal-backdrop flex items-center justify-center p-4">
     <div class="bg-white rounded-xl shadow-2xl w-full max-w-md max-h-[80vh] flex flex-col">
@@ -389,10 +399,47 @@
     </div>
   </div>
 
+  <!-- Bug Report Modal -->
+  <div id="report-modal" class="hidden fixed inset-0 z-50 modal-backdrop flex items-center justify-center p-4">
+    <div class="bg-white rounded-xl shadow-2xl w-full max-w-lg max-h-[90vh] flex flex-col">
+      <div class="px-6 py-4 border-b border-gray-200 flex items-center justify-between gap-4">
+        <div>
+          <h2 data-i18n="report.title" class="text-lg font-semibold text-gray-800">Reportar un error</h2>
+          <p data-i18n="report.subtitle" class="text-xs text-gray-500 mt-0.5">Cu&eacute;ntanos qu&eacute; pas&oacute;. Solo texto; no adjuntes capturas.</p>
+        </div>
+        <button type="button" onclick="closeReportModal()" class="p-1 hover:bg-gray-100 rounded-lg transition shrink-0">
+          <svg class="w-5 h-5 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/></svg>
+        </button>
+      </div>
+      <form id="report-form" class="flex flex-col min-h-0 flex-1" onsubmit="submitReport(event)">
+        <div class="px-6 py-4 overflow-y-auto flex-1 space-y-4">
+          <div>
+            <label for="report-subject" data-i18n="report.subject" class="block text-sm font-medium text-gray-700 mb-1">Asunto</label>
+            <input id="report-subject" type="text" maxlength="160" required data-i18n-placeholder="report.subjectPlaceholder" placeholder="Resumen breve del problema" class="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-blue-500 focus:outline-none">
+          </div>
+          <div>
+            <label for="report-details" data-i18n="report.details" class="block text-sm font-medium text-gray-700 mb-1">Detalles</label>
+            <textarea id="report-details" rows="6" maxlength="4000" required data-i18n-placeholder="report.detailsPlaceholder" placeholder="¿Qu&eacute; hiciste? ¿Qu&eacute; esperabas? ¿Qu&eacute; ocurri&oacute;?" class="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-blue-500 focus:outline-none resize-y"></textarea>
+          </div>
+          <div>
+            <label for="report-contact" data-i18n="report.contact" class="block text-sm font-medium text-gray-700 mb-1">Correo de contacto (opcional)</label>
+            <input id="report-contact" type="text" maxlength="120" data-i18n-placeholder="report.contactPlaceholder" placeholder="tu@correo.com" class="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-blue-500 focus:outline-none">
+          </div>
+          <p data-i18n="report.footer" class="text-xs text-gray-400 leading-relaxed">Se incluir&aacute;n autom&aacute;ticamente la versi&oacute;n, el idioma, el tema y la p&aacute;gina.</p>
+          <p id="report-message" class="hidden text-sm leading-relaxed"></p>
+        </div>
+        <div class="px-6 py-3 border-t border-gray-200 flex items-center justify-end gap-2">
+          <button type="button" onclick="closeReportModal()" data-i18n="report.cancel" class="px-4 py-2 text-sm text-gray-600 hover:bg-gray-100 rounded-lg transition">Cancelar</button>
+          <button id="report-submit" type="submit" data-i18n="report.send" class="px-4 py-2 text-sm bg-blue-600 hover:bg-blue-700 text-white rounded-lg transition">Enviar reporte</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
   <script>
-    var APP_VERSION = 'v5.3';
+    var APP_VERSION = 'v5.3.1';
     var LS_CHANGELOG_KEY = 'eudamed_changelog_viewed';
-    var CHANGELOG_VERSIONS = ['v5.3', 'v5.2.2', 'v5.2.1', 'v5.2'];
+    var CHANGELOG_VERSIONS = ['v5.3.1', 'v5.3', 'v5.2.2', 'v5.2.1', 'v5.2'];
 
     // UI translations only. EUDAMED coded values, Yes/No and API language stay unchanged.
     var LS_LANG = 'eudamed_lang';
@@ -448,6 +495,22 @@
         'settings.language': 'Idioma',
         'settings.themeDark': 'Activar modo oscuro',
         'settings.themeLight': 'Activar modo claro',
+        'report.button': 'Reportar error',
+        'report.title': 'Reportar un error',
+        'report.subtitle': 'Cu\u00e9ntanos qu\u00e9 pas\u00f3. Solo texto; no adjuntes capturas.',
+        'report.subject': 'Asunto',
+        'report.subjectPlaceholder': 'Resumen breve del problema',
+        'report.details': 'Detalles',
+        'report.detailsPlaceholder': 'Qu\u00e9 hiciste? Qu\u00e9 esperabas? Qu\u00e9 ocurri\u00f3?',
+        'report.contact': 'Correo de contacto (opcional)',
+        'report.contactPlaceholder': 'tu@correo.com',
+        'report.footer': 'Se incluir\u00e1n autom\u00e1ticamente la versi\u00f3n, el idioma, el tema y la p\u00e1gina.',
+        'report.cancel': 'Cancelar',
+        'report.send': 'Enviar reporte',
+        'report.sending': 'Enviando...',
+        'report.success': 'Gracias. Tu reporte se guard\u00f3 correctamente.',
+        'report.error': 'No se pudo enviar el reporte. Int\u00e9ntalo de nuevo.',
+        'report.required': 'Completa el asunto y los detalles.',
         'settings.processSection': 'Procesamiento m\u00faltiple',
         'settings.autoUpper': 'Convertir min\u00fasculas a may\u00fasculas',
         'settings.autoUpperHint': 'SRN con letras en min\u00fascula se convierten autom\u00e1ticamente',
@@ -556,6 +619,22 @@
         'settings.language': 'Language',
         'settings.themeDark': 'Switch to dark mode',
         'settings.themeLight': 'Switch to light mode',
+        'report.button': 'Report a bug',
+        'report.title': 'Report a bug',
+        'report.subtitle': 'Tell us what happened. Text only; no screenshots.',
+        'report.subject': 'Subject',
+        'report.subjectPlaceholder': 'Brief summary of the issue',
+        'report.details': 'Details',
+        'report.detailsPlaceholder': 'What did you do? What did you expect? What happened?',
+        'report.contact': 'Contact email (optional)',
+        'report.contactPlaceholder': 'you@example.com',
+        'report.footer': 'Version, language, theme and page will be included automatically.',
+        'report.cancel': 'Cancel',
+        'report.send': 'Send report',
+        'report.sending': 'Sending...',
+        'report.success': 'Thanks. Your report was saved.',
+        'report.error': 'Could not send the report. Please try again.',
+        'report.required': 'Fill in the subject and details.',
         'settings.processSection': 'Batch processing',
         'settings.autoUpper': 'Convert lowercase to uppercase',
         'settings.autoUpperHint': 'Lowercase SRNs are converted automatically',
@@ -664,6 +743,22 @@
         'settings.language': 'Idioma',
         'settings.themeDark': 'Ativar modo escuro',
         'settings.themeLight': 'Ativar modo claro',
+        'report.button': 'Reportar erro',
+        'report.title': 'Reportar um erro',
+        'report.subtitle': 'Diga-nos o que aconteceu. Apenas texto; sem capturas.',
+        'report.subject': 'Assunto',
+        'report.subjectPlaceholder': 'Resumo breve do problema',
+        'report.details': 'Detalhes',
+        'report.detailsPlaceholder': 'O que fez? O que esperava? O que aconteceu?',
+        'report.contact': 'Email de contacto (opcional)',
+        'report.contactPlaceholder': 'o-seu@email.com',
+        'report.footer': 'A vers\u00e3o, o idioma, o tema e a p\u00e1gina ser\u00e3o inclu\u00eddos automaticamente.',
+        'report.cancel': 'Cancelar',
+        'report.send': 'Enviar relat\u00f3rio',
+        'report.sending': 'A enviar...',
+        'report.success': 'Obrigado. O seu relat\u00f3rio foi guardado.',
+        'report.error': 'N\u00e3o foi poss\u00edvel enviar o relat\u00f3rio. Tente novamente.',
+        'report.required': 'Preencha o assunto e os detalhes.',
         'settings.processSection': 'Processamento em lote',
         'settings.autoUpper': 'Converter min\u00fasculas em mai\u00fasculas',
         'settings.autoUpperHint': 'SRNs com letras min\u00fasculas s\u00e3o convertidos automaticamente',
@@ -1530,6 +1625,70 @@
       updateChangelogBadge();
     }
 
+    function openReportModal() {
+      var modal = document.getElementById('report-modal');
+      if (!modal) return;
+      modal.classList.remove('hidden');
+      var msg = document.getElementById('report-message');
+      msg.textContent = '';
+      msg.className = 'hidden text-sm leading-relaxed';
+      document.getElementById('report-subject').focus();
+    }
+
+    function closeReportModal() {
+      var modal = document.getElementById('report-modal');
+      if (modal) modal.classList.add('hidden');
+    }
+
+    function reportMessage(text, ok) {
+      var msg = document.getElementById('report-message');
+      msg.textContent = text;
+      msg.className = 'text-sm leading-relaxed ' + (ok ? 'text-green-700' : 'text-red-600');
+    }
+
+    async function submitReport(ev) {
+      ev.preventDefault();
+      var subject = document.getElementById('report-subject').value.trim();
+      var details = document.getElementById('report-details').value.trim();
+      var contact = document.getElementById('report-contact').value.trim();
+      if (!subject || !details) {
+        reportMessage(t('report.required'), false);
+        return;
+      }
+
+      var btn = document.getElementById('report-submit');
+      btn.disabled = true;
+      btn.textContent = t('report.sending');
+      reportMessage('', true);
+
+      try {
+        var resp = await fetch('/api/report', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            subject: subject,
+            details: details,
+            contact: contact,
+            meta: {
+              version: APP_VERSION,
+              lang: LANG,
+              theme: THEME,
+              page: location.pathname,
+              ua: navigator.userAgent
+            }
+          })
+        });
+        if (!resp.ok) throw new Error('HTTP ' + resp.status);
+        document.getElementById('report-form').reset();
+        reportMessage(t('report.success'), true);
+      } catch (err) {
+        reportMessage(t('report.error'), false);
+      } finally {
+        btn.disabled = false;
+        btn.textContent = t('report.send');
+      }
+    }
+
     function filterExtraFields(query) {
       var q = query.toLowerCase();
       var items = document.querySelectorAll('#extra-fields-list .check-item');
@@ -1642,6 +1801,7 @@
     document.getElementById('lang-select').value = LANG;
     setHeaders();
     updateChangelogBadge();
+    if (new URLSearchParams(location.search).get('report') === '1') openReportModal();
 
     // ==================== TABS ====================
     function switchTab(tab) {

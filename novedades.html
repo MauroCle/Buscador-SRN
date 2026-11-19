@@ -72,9 +72,9 @@
     body.theme-dark .text-blue-800, body.theme-dark .text-blue-700 { color: #bfdbfe; }
     body.theme-dark .text-blue-600 { color: #93c5fd; }
     body.theme-dark .text-green-700 { color: #6ee7b7; }
-    body.theme-dark .text-red-800 { color: #fca5a5; }
-    body.theme-dark input[type="text"]:not(#lang-select), body.theme-dark select:not(#lang-select) { background-color: #0f172a; color: #e2e8f0; border-color: #334155; }
-    body.theme-dark input::placeholder { color: #64748b; }
+    body.theme-dark .text-red-600, body.theme-dark .text-red-800 { color: #fca5a5; }
+    body.theme-dark input[type="text"]:not(#lang-select), body.theme-dark textarea, body.theme-dark select:not(#lang-select) { background-color: #0f172a; color: #e2e8f0; border-color: #334155; }
+    body.theme-dark input::placeholder, body.theme-dark textarea::placeholder { color: #64748b; }
     body.theme-dark select:not(#lang-select) option { color: #e2e8f0; background-color: #0f172a; }
     body.theme-dark [class*="hover:bg-gray-"]:hover { background-color: #1e293b !important; }
     body.theme-dark [class*="hover:text-gray-"]:hover { color: #f1f5f9 !important; }
@@ -124,6 +124,16 @@
     <div id="changelog-list" class="space-y-6"></div>
   </main>
 
+  <!-- Floating bug report button -->
+  <a href="index.html?report=1" data-i18n-title="report.title" title="Report a bug" class="fixed bottom-5 right-5 z-40 flex items-center gap-2 px-4 py-3 bg-blue-600 hover:bg-blue-700 text-white rounded-full shadow-xl shadow-blue-900/25 hover:shadow-blue-900/40 transition focus:outline-none focus:ring-4 focus:ring-blue-300">
+    <svg class="w-5 h-5 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-linecap="round" stroke-linejoin="round" stroke-width="2">
+      <path d="M12 8v4m0 4h.01"></path>
+      <path d="M12 2a7 7 0 00-7 7v3a7 7 0 0014 0V9a7 7 0 00-7-7z"></path>
+      <path d="M5 9h14M5 15l-2 2m16-2 2 2"></path>
+    </svg>
+    <span class="hidden sm:inline text-sm font-medium" data-i18n="report.button">Reportar error</span>
+  </a>
+
   <script>
     var LS_LANG = 'eudamed_lang';
     var LS_THEME = 'eudamed_theme';
@@ -134,7 +144,8 @@
         'news.subtitle': 'Cambios importantes en cada versi\u00f3n',
         'news.back': 'Volver al Buscador',
         'settings.themeDark': 'Activar modo oscuro',
-        'settings.themeLight': 'Activar modo claro'
+        'settings.themeLight': 'Activar modo claro',
+        'report.button': 'Reportar error'
       },
       en: {
         'news.pageTitle': "What's new - SRN Search EUDAMED",
@@ -142,7 +153,8 @@
         'news.subtitle': 'Important changes in each version',
         'news.back': 'Back to the search tool',
         'settings.themeDark': 'Switch to dark mode',
-        'settings.themeLight': 'Switch to light mode'
+        'settings.themeLight': 'Switch to light mode',
+        'report.button': 'Report a bug'
       },
       pt: {
         'news.pageTitle': 'Novidades - Pesquisa SRN EUDAMED',
@@ -150,7 +162,8 @@
         'news.subtitle': 'Altera\u00e7\u00f5es importantes em cada vers\u00e3o',
         'news.back': 'Voltar \u00e0 Pesquisa SRN',
         'settings.themeDark': 'Ativar modo escuro',
-        'settings.themeLight': 'Ativar modo claro'
+        'settings.themeLight': 'Ativar modo claro',
+        'report.button': 'Reportar erro'
       }
     };
     var LANG = 'en';
@@ -193,6 +206,7 @@
 
     var LS_CHANGELOG_KEY = 'eudamed_changelog_viewed';
     var CHANGELOG = [
+      { date: '19/11/2026', version: 'v5.3.1', text: 'Bot\u00f3n flotante para reportar errores; los reportes se guardan como texto en el servidor y se env\u00eda un resumen semanal por correo.' },
       { date: '19/11/2026', version: 'v5.3', text: 'Interfaz implementada en tres idiomas (espa\u00f1ol, ingl\u00e9s y portugu\u00e9s) con selector en la cabecera. Temas claro y oscuro con conmutador en la cabecera.' },
       { date: '24/08/2026', version: 'v5.2.2', text: 'B\u00fasqueda m\u00faltiple en paralelo (5 workers, configurable); correcci\u00f3n de columnas VAT/EORI/Trade Register en b\u00fasqueda m\u00faltiple; correcci\u00f3n de badge "Nuevo"' },
       { date: '24/08/2026', version: 'v5.2.1', text: 'Secci\u00f3n de Novedades para registrar cambios importantes; correcci\u00f3n de formato de columnas' },
