@@ -1,9 +1,9 @@
 <!DOCTYPE html>
-<html lang="es">
+<html lang="en">
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Buscador SRN - EUDAMED</title>
+  <title>SRN Search - EUDAMED</title>
   <script src="https://cdn.tailwindcss.com"></script>
   <script src="https://cdn.sheetjs.com/xlsx-0.20.0/package/dist/xlsx.full.min.js"></script>
   <style>
@@ -11,11 +11,77 @@
     .spinner { animation: spin 0.8s linear infinite; }
     .fade-in { animation: fadeIn 0.3s ease-in; }
     @keyframes fadeIn { from { opacity: 0; transform: translateY(8px); } to { opacity: 1; transform: translateY(0); } }
-    body { font-family: 'Segoe UI', system-ui, -apple-system, sans-serif; }
+    body { font-family: 'Segoe UI', system-ui, -apple-system, sans-serif; transition: background-color .2s, color .2s; }
+    /* Light header: the original look, used by default */
+    .app-header { position: relative; background: #ffffff; border-bottom: 1px solid #e5e7eb; }
+    .app-header > div { position: relative; z-index: 1; }
+    .hdr-icon-box { display: none; }
+    .hdr-icon { color: #2563eb; }
+    .hdr-title { color: #1f2937; }
+    .hdr-subtitle { color: #6b7280; }
+    .hdr-meta { color: #9ca3af; }
+    .hdr-select { background: #ffffff; color: #374151; box-shadow: inset 0 0 0 1px #d1d5db; }
+    .hdr-select:hover { background: #f9fafb; }
+    .hdr-select-icon { color: #9ca3af; }
+    #lang-select option { color: #0f172a; background: #ffffff; }
+    .hdr-news { color: #2563eb; }
+    .hdr-news:hover { color: #1d4ed8; background: #eff6ff; }
+    .icon-sun { display: none; }
     ::-webkit-scrollbar { width: 8px; height: 8px; }
     ::-webkit-scrollbar-track { background: #f1f5f9; }
     ::-webkit-scrollbar-thumb { background: #94a3b8; border-radius: 4px; }
     ::-webkit-scrollbar-thumb:hover { background: #64748b; }
+
+    /* Dark theme */
+    body.theme-dark { background-color: #0b1120; color: #e2e8f0; }
+    body.theme-dark ::-webkit-scrollbar-track { background: #0f172a; }
+    body.theme-dark ::-webkit-scrollbar-thumb { background: #475569; }
+    body.theme-dark ::-webkit-scrollbar-thumb:hover { background: #64748b; }
+    body.theme-dark .app-header { background: linear-gradient(110deg, #0f172a 0%, #1e293b 48%, #312e81 100%); border-bottom-color: rgba(255,255,255,.12); }
+    body.theme-dark .app-header::after { content: ''; position: absolute; inset: 0; background: radial-gradient(circle at 82% -40%, rgba(129,140,248,0.35), transparent 55%); pointer-events: none; }
+    body.theme-dark .hdr-icon-box { display: flex; background: rgba(255,255,255,.1); box-shadow: inset 0 0 0 1px rgba(255,255,255,.2); }
+    body.theme-dark .hdr-icon { color: #c7d2fe; }
+    body.theme-dark .hdr-title { color: #ffffff; }
+    body.theme-dark .hdr-subtitle { color: #cbd5e1; }
+    body.theme-dark .hdr-meta { color: #94a3b8; }
+    body.theme-dark .hdr-select { background: rgba(255,255,255,.1); color: #ffffff; box-shadow: inset 0 0 0 1px rgba(255,255,255,.2); }
+    body.theme-dark .hdr-select:hover { background: rgba(255,255,255,.2); }
+    body.theme-dark .hdr-select-icon { color: #cbd5e1; }
+    body.theme-dark #lang-select option { color: #0f172a; background: #ffffff; }
+    body.theme-dark .hdr-news { color: #ffffff; background: rgba(255,255,255,.1); box-shadow: inset 0 0 0 1px rgba(255,255,255,.2); }
+    body.theme-dark .hdr-news:hover { color: #ffffff; background: rgba(255,255,255,.2); }
+    body.theme-dark .icon-moon { display: none; }
+    body.theme-dark .icon-sun { display: block; }
+    body.theme-dark .bg-white { background-color: #111c2e; }
+    body.theme-dark .bg-gray-50 { background-color: #162238; }
+    body.theme-dark .bg-blue-50 { background-color: rgba(30,64,175,.25); }
+    body.theme-dark .bg-red-50 { background-color: rgba(127,29,29,.28); }
+    body.theme-dark .bg-blue-100 { background-color: rgba(30,64,175,.55); }
+    body.theme-dark .bg-green-100 { background-color: rgba(6,78,59,.55); }
+    body.theme-dark .bg-blue-200 { background-color: #1e3a8a; }
+    body.theme-dark .border-gray-200 { border-color: #263449; }
+    body.theme-dark .border-gray-300 { border-color: #334155; }
+    body.theme-dark .border-blue-200 { border-color: rgba(96,165,250,.35); }
+    body.theme-dark .border-red-200 { border-color: rgba(248,113,113,.35); }
+    body.theme-dark .divide-gray-100 > * + * { border-color: #263449; }
+    body.theme-dark .text-gray-800 { color: #f1f5f9; }
+    body.theme-dark .text-gray-700 { color: #dbe4f0; }
+    body.theme-dark .text-gray-600 { color: #cbd5e1; }
+    body.theme-dark .text-gray-500 { color: #94a3b8; }
+    body.theme-dark .text-gray-400 { color: #94a3b8; }
+    body.theme-dark .text-gray-300 { color: #64748b; }
+    body.theme-dark .text-blue-800, body.theme-dark .text-blue-700 { color: #bfdbfe; }
+    body.theme-dark .text-blue-600 { color: #93c5fd; }
+    body.theme-dark .text-green-700 { color: #6ee7b7; }
+    body.theme-dark .text-red-800 { color: #fca5a5; }
+    body.theme-dark input[type="text"]:not(#lang-select), body.theme-dark select:not(#lang-select) { background-color: #0f172a; color: #e2e8f0; border-color: #334155; }
+    body.theme-dark input::placeholder { color: #64748b; }
+    body.theme-dark select:not(#lang-select) option { color: #e2e8f0; background-color: #0f172a; }
+    body.theme-dark [class*="hover:bg-gray-"]:hover { background-color: #1e293b !important; }
+    body.theme-dark [class*="hover:text-gray-"]:hover { color: #f1f5f9 !important; }
+    body.theme-dark .toggle-slider { background: #475569; }
+    body.theme-dark .modal-backdrop { background: rgba(0,0,0,.65); }
+    body.theme-dark .check-item:hover { background: #1e293b; }
     .table-container { max-height: 65vh; overflow: auto; }
     .modal-backdrop { background: rgba(0,0,0,0.4); }
     .check-item:hover { background: #f8fafc; }
@@ -33,20 +99,48 @@
 </head>
 <body class="bg-gray-50 min-h-screen">
 
-  <header class="bg-white border-b border-gray-200 shadow-sm">
-    <div class="max-w-7xl mx-auto px-4 py-4 flex items-center justify-between">
-      <div>
-        <h1 class="text-xl font-bold text-gray-800">Buscador SRN - EUDAMED</h1>
-        <p class="text-sm text-gray-500">Consulta dispositivos m&eacute;dicos por Single Registration Number</p>
+  <header class="app-header shadow-sm">
+    <div class="max-w-7xl mx-auto px-4 py-4 flex items-center justify-between gap-4">
+      <div class="flex items-center gap-3 min-w-0">
+        <div class="hdr-icon-box w-10 h-10 shrink-0 items-center justify-center rounded-xl">
+          <svg class="w-5 h-5 hdr-icon" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-linecap="round" stroke-linejoin="round" stroke-width="2">
+            <circle cx="11" cy="11" r="7"></circle><path d="M20 20l-3.5-3.5"></path>
+          </svg>
+        </div>
+        <div class="min-w-0">
+          <h1 class="text-xl font-bold hdr-title tracking-tight truncate" data-i18n="app.title">Buscador SRN - EUDAMED</h1>
+          <p class="text-sm hdr-subtitle" data-i18n="app.subtitle">Consulta dispositivos m&eacute;dicos por Single Registration Number</p>
+        </div>
       </div>
-      <div class="text-xs text-gray-400 text-right flex items-center gap-3">
-        <div>
-          <div>v5.2.2</div>
+      <div class="flex items-center gap-2 shrink-0">
+        <div class="hidden md:block text-right text-xs hdr-meta leading-tight">
+          <div>v5.3</div>
           <div>Data Lake EUDAMED</div>
         </div>
-        <button onclick="markChangelogRead(); window.open('novedades.html', '_blank')" class="relative px-3 py-1.5 text-sm text-blue-600 hover:text-blue-800 hover:bg-blue-50 rounded-lg font-medium transition">
-          Novedades
-          <span id="changelog-badge" class="hidden absolute -top-1.5 -right-1.5 bg-red-500 text-white text-[9px] font-bold px-1.5 py-0.5 rounded-full leading-none">Nuevo</span>
+        <div class="relative flex items-center">
+          <svg class="pointer-events-none absolute left-3 w-4 h-4 hdr-select-icon" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-linecap="round" stroke-linejoin="round" stroke-width="2">
+            <circle cx="12" cy="12" r="9"></circle><path d="M3 12h18"></path><path d="M12 3c2.5 2.6 3.8 5.6 3.8 9S14.5 18.4 12 21c-2.5-2.6-3.8-5.6-3.8-9S9.5 5.6 12 3z"></path>
+          </svg>
+          <select id="lang-select" onchange="changeLanguage(this.value)" data-i18n-title="settings.language" title="Idioma" class="hdr-select appearance-none pl-9 pr-8 py-2 text-sm font-medium rounded-full focus:outline-none focus:ring-2 focus:ring-blue-500 transition cursor-pointer">
+            <option value="en">English</option>
+            <option value="es">Espa&ntilde;ol</option>
+            <option value="pt">Portugu&ecirc;s</option>
+          </select>
+          <svg class="pointer-events-none absolute right-3 w-3 h-3 hdr-select-icon" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5">
+            <path d="M6 9l6 6 6-6"></path>
+          </svg>
+        </div>
+        <button id="theme-toggle" type="button" onclick="toggleTheme()" class="hdr-select p-2 rounded-full transition focus:outline-none focus:ring-2 focus:ring-blue-500" title="Dark mode">
+          <svg class="icon-moon w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-linecap="round" stroke-linejoin="round" stroke-width="2">
+            <path d="M21 12.8A9 9 0 1111.2 3a7 7 0 009.8 9.8z"></path>
+          </svg>
+          <svg class="icon-sun w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-linecap="round" stroke-linejoin="round" stroke-width="2">
+            <circle cx="12" cy="12" r="4"></circle><path d="M12 2v2m0 16v2M4.9 4.9l1.4 1.4m11.4 11.4l1.4 1.4M2 12h2m16 0h2M4.9 19.1l1.4-1.4M17.7 6.3l1.4-1.4"></path>
+          </svg>
+        </button>
+        <button onclick="markChangelogRead(); window.open('novedades.html', '_blank')" class="hdr-news relative px-3 py-2 text-sm font-medium rounded-lg transition">
+          <span data-i18n="nav.news">Novedades</span>
+          <span id="changelog-badge" data-i18n="nav.badge" class="hidden absolute -top-1.5 -right-1.5 bg-red-500 text-white text-[9px] font-bold px-1.5 py-0.5 rounded-full leading-none">Nuevo</span>
         </button>
       </div>
     </div>
@@ -57,10 +151,10 @@
     <!-- Tab Navigation -->
     <div class="bg-white rounded-xl shadow-sm border border-gray-200 mb-6">
       <div class="flex border-b border-gray-200">
-        <button onclick="switchTab('single')" id="tab-single" class="px-6 py-3 text-sm tab-active transition">
+        <button onclick="switchTab('single')" id="tab-single" data-i18n="tab.single" class="px-6 py-3 text-sm tab-active transition">
           B&uacute;squeda simple
         </button>
-        <button onclick="switchTab('batch')" id="tab-batch" class="px-6 py-3 text-sm tab-inactive transition">
+        <button onclick="switchTab('batch')" id="tab-batch" data-i18n="tab.batch" class="px-6 py-3 text-sm tab-inactive transition">
           B&uacute;squeda m&uacute;ltiple
         </button>
       </div>
@@ -69,40 +163,40 @@
       <div id="panel-single" class="p-6">
         <div class="flex flex-col md:flex-row gap-4 items-end">
           <div class="flex-1">
-            <label for="srn-input" class="block text-sm font-medium text-gray-700 mb-1">SRN (Single Registration Number)</label>
-            <input id="srn-input" type="text" placeholder="Ej: CA-MF-000013010"
+            <label for="srn-input" data-i18n="search.srnLabel" class="block text-sm font-medium text-gray-700 mb-1">SRN (Single Registration Number)</label>
+            <input id="srn-input" type="text" data-i18n-placeholder="search.srnPlaceholder" placeholder="Ej: CA-MF-000013010"
               class="w-full px-4 py-2.5 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none transition" />
           </div>
           <div class="flex gap-2">
             <button id="btn-search" onclick="startSearch()"
               class="px-6 py-2.5 bg-blue-600 hover:bg-blue-700 text-white font-medium text-sm rounded-lg transition flex items-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed">
               <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"/></svg>
-              Buscar
+              <span data-i18n="search.button">Buscar</span>
             </button>
             <button id="btn-stop" onclick="stopSearch()"
               class="px-4 py-2.5 bg-red-500 hover:bg-red-600 text-white font-medium text-sm rounded-lg transition hidden">
-              Detener
+              <span data-i18n="search.stop">Detener</span>
             </button>
           </div>
         </div>
         <div class="mt-3">
           <button onclick="document.getElementById('other-fields').classList.toggle('hidden'); this.querySelector('span').textContent = document.getElementById('other-fields').classList.contains('hidden') ? '\u25B6' : '\u25BC'" class="text-xs text-gray-500 hover:text-gray-700 transition flex items-center gap-1">
-            <span class="text-[10px]">&#9654;</span> Otras opciones de b&uacute;squeda
+            <span class="text-[10px]">&#9654;</span> <span data-i18n="search.other">Otras opciones de b&uacute;squeda</span>
           </button>
           <div id="other-fields" class="hidden mt-2 flex gap-3 items-end">
             <div>
-              <label class="block text-xs font-medium text-gray-500 mb-1">Buscar por campo</label>
+              <label data-i18n="search.byField" class="block text-xs font-medium text-gray-500 mb-1">Buscar por campo</label>
               <select id="search-field-select" class="px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none transition">
-                <option value="">Seleccionar campo...</option>
-                <option value="REFERENCE">Reference Catalogue Number</option>
-                <option value="PRIMARY_DI">Primary UDI-DI</option>
-                <option value="BASIC_UDI">Basic UDI-DI</option>
-                <option value="DEVICE_MODEL">Device Model</option>
+                <option value="" data-i18n="search.selectField">Seleccionar campo...</option>
+                <option value="REFERENCE" data-i18n="fields.REFERENCE">Reference Catalogue Number</option>
+                <option value="PRIMARY_DI" data-i18n="fields.PRIMARY_DI">Primary UDI-DI</option>
+                <option value="BASIC_UDI" data-i18n="fields.BASIC_UDI">Basic UDI-DI</option>
+                <option value="DEVICE_MODEL" data-i18n="fields.DEVICE_MODEL">Device Model</option>
               </select>
             </div>
             <div class="flex-1">
-              <label class="block text-xs font-medium text-gray-500 mb-1">Valor</label>
-              <input id="search-field-value" type="text" placeholder="Valor a buscar..."
+              <label data-i18n="search.value" class="block text-xs font-medium text-gray-500 mb-1">Valor</label>
+              <input id="search-field-value" type="text" data-i18n-placeholder="search.placeholderValue" placeholder="Valor a buscar..."
                 class="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none transition" />
             </div>
           </div>
@@ -113,42 +207,42 @@
       <div id="panel-batch" class="p-6 hidden">
         <div class="flex flex-col md:flex-row gap-4 items-end mb-4">
           <div class="flex-1">
-            <label class="block text-sm font-medium text-gray-700 mb-1">Importar lista de SRN</label>
+            <label data-i18n="batch.importLabel" class="block text-sm font-medium text-gray-700 mb-1">Importar lista de SRN</label>
             <div class="flex gap-2">
               <label class="flex-1 flex items-center justify-center px-4 py-2.5 border-2 border-dashed border-gray-300 rounded-lg text-sm text-gray-500 hover:border-blue-400 hover:text-blue-600 cursor-pointer transition">
                 <svg class="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12"/></svg>
-                <span id="file-label">Seleccionar archivo Excel/CSV</span>
+                <span id="file-label" data-i18n="batch.file">Seleccionar archivo Excel/CSV</span>
                 <input id="batch-file" type="file" accept=".xlsx,.xls,.csv" onchange="handleBatchFile(event)" class="hidden" />
               </label>
-              <button onclick="downloadTemplate()" title="Descargar plantilla"
+              <button onclick="downloadTemplate()" data-i18n-title="batch.templateTitle" title="Descargar plantilla"
                 class="px-3 py-2.5 border border-gray-300 rounded-lg text-sm text-gray-600 hover:bg-gray-50 transition flex items-center gap-1">
                 <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"/></svg>
-                Plantilla
+                <span data-i18n="batch.template">Plantilla</span>
               </button>
             </div>
           </div>
           <div class="flex-1">
-            <label class="block text-sm font-medium text-gray-700 mb-1">Columna SRN</label>
+            <label data-i18n="batch.col" class="block text-sm font-medium text-gray-700 mb-1">Columna SRN</label>
             <select id="batch-col-select" class="w-full px-4 py-2.5 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none transition">
-              <option value="">Detectar autom&aacute;ticamente</option>
+              <option value="" data-i18n="batch.auto">Detectar autom&aacute;ticamente</option>
             </select>
           </div>
           <div class="flex gap-2">
             <button id="btn-batch-start" onclick="startBatchSearch()" disabled
               class="px-6 py-2.5 bg-blue-600 hover:bg-blue-700 text-white font-medium text-sm rounded-lg transition flex items-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed">
               <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M14.752 11.168l-3.197-2.132A1 1 0 0010 9.87v4.263a1 1 0 001.555.832l3.197-2.132a1 1 0 000-1.664z"/><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
-              Iniciar
+              <span data-i18n="batch.start">Iniciar</span>
             </button>
             <button id="btn-batch-stop" onclick="stopBatchSearch()"
               class="px-4 py-2.5 bg-red-500 hover:bg-red-600 text-white font-medium text-sm rounded-lg transition hidden">
-              Detener
+              <span data-i18n="search.stop">Detener</span>
             </button>
           </div>
         </div>
         <div id="batch-progress" class="hidden">
           <div class="bg-blue-50 border border-blue-200 rounded-lg px-4 py-3">
             <div class="flex items-center justify-between mb-2">
-              <span id="batch-status-text" class="text-sm text-blue-800">Procesando...</span>
+              <span id="batch-status-text" data-i18n="status.processing" class="text-sm text-blue-800">Procesando...</span>
               <span id="batch-status-count" class="text-xs text-blue-600 font-medium"></span>
             </div>
             <div class="w-full bg-blue-200 rounded-full h-2">
@@ -163,7 +257,7 @@
     <div id="status-bar" class="hidden mb-6 fade-in">
       <div class="bg-blue-50 border border-blue-200 rounded-lg px-4 py-3 flex items-center gap-3">
         <svg class="w-5 h-5 text-blue-600 spinner" fill="none" viewBox="0 0 24 24"><circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle><path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z"></path></svg>
-        <span id="status-text" class="text-sm text-blue-800">Iniciando...</span>
+        <span id="status-text" data-i18n="status.initial" class="text-sm text-blue-800">Iniciando...</span>
         <span id="status-count" class="ml-auto text-xs text-blue-600 font-medium"></span>
       </div>
     </div>
@@ -178,18 +272,18 @@
       <div class="bg-white rounded-xl shadow-sm border border-gray-200">
         <div class="px-4 py-3 border-b border-gray-200 flex items-center justify-between">
           <div>
-            <span class="text-sm font-medium text-gray-700">Resultados</span>
+            <span data-i18n="results.title" class="text-sm font-medium text-gray-700">Resultados</span>
             <span id="result-count" class="ml-2 text-xs bg-blue-100 text-blue-700 px-2 py-0.5 rounded-full font-medium"></span>
           </div>
           <div class="flex items-center gap-2">
-            <button onclick="openSettings()" id="btn-settings" title="Configurar columnas de exportaci\u00f3n"
+            <button onclick="openSettings()" id="btn-settings" data-i18n-title="settings.iconTitle" title="Configurar columnas de exportaci\u00f3n"
               class="p-2 text-gray-400 hover:text-gray-600 hover:bg-gray-100 rounded-lg transition">
               <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.066 2.573c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.573 1.066c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.066-2.573c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z"/><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"/></svg>
             </button>
             <button onclick="exportToExcel()" id="btn-export"
               class="px-4 py-2 bg-green-600 hover:bg-green-700 text-white text-sm font-medium rounded-lg transition flex items-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed">
               <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/></svg>
-              Exportar a Excel
+              <span data-i18n="export.single">Exportar a Excel</span>
             </button>
           </div>
         </div>
@@ -201,7 +295,7 @@
         </div>
         <div id="empty-state" class="py-16 text-center">
           <svg class="mx-auto w-12 h-12 text-gray-300 mb-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"/></svg>
-          <p id="empty-text" class="text-gray-400 text-sm">Ingresa un SRN y presiona Buscar</p>
+          <p id="empty-text" data-i18n="empty.initial" class="text-gray-400 text-sm">Ingresa un SRN y presiona Buscar</p>
         </div>
       </div>
     </div>
@@ -211,18 +305,18 @@
       <div class="bg-white rounded-xl shadow-sm border border-gray-200">
         <div class="px-4 py-3 border-b border-gray-200 flex items-center justify-between">
           <div>
-            <span class="text-sm font-medium text-gray-700">Resultados consolidados</span>
+            <span data-i18n="results.batchTitle" class="text-sm font-medium text-gray-700">Resultados consolidados</span>
             <span id="batch-result-count" class="ml-2 text-xs bg-green-100 text-green-700 px-2 py-0.5 rounded-full font-medium"></span>
           </div>
           <div class="flex items-center gap-2">
-            <button onclick="openSettings()" id="btn-settings-batch" title="Configurar columnas de exportaci\u00f3n"
+            <button onclick="openSettings()" id="btn-settings-batch" data-i18n-title="settings.iconTitle" title="Configurar columnas de exportaci\u00f3n"
               class="p-2 text-gray-400 hover:text-gray-600 hover:bg-gray-100 rounded-lg transition">
               <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.066 2.573c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.573 1.066c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.066-2.573c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z"/><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"/></svg>
             </button>
             <button onclick="exportBatchToExcel()" id="btn-batch-export"
               class="px-4 py-2 bg-green-600 hover:bg-green-700 text-white text-sm font-medium rounded-lg transition flex items-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed">
               <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/></svg>
-              Exportar todo a Excel
+              <span data-i18n="export.batch">Exportar todo a Excel</span>
             </button>
           </div>
         </div>
@@ -241,16 +335,16 @@
   <div id="upper-modal" class="hidden fixed inset-0 z-50 modal-backdrop flex items-center justify-center p-4">
     <div class="bg-white rounded-xl shadow-2xl w-full max-w-md max-h-[80vh] flex flex-col">
       <div class="px-6 py-4 border-b border-gray-200">
-        <h2 class="text-lg font-semibold text-gray-800">SRN con min&uacute;sculas detectados</h2>
+        <h2 data-i18n="upper.title" class="text-lg font-semibold text-gray-800">SRN con min&uacute;sculas detectados</h2>
       </div>
       <div class="px-6 py-4 text-sm text-gray-600 leading-relaxed overflow-y-auto flex-1">
-        <p>Los SRN en EUDAMED <strong>siempre</strong> usan letras may&uacute;sculas.</p>
-        <p class="mt-2">Si continuas, se convertir&aacute;n autom&aacute;ticamente:</p>
+        <p data-i18n="upper.p1">Los SRN en EUDAMED siempre usan letras may&uacute;sculas.</p>
+        <p data-i18n="upper.p2" class="mt-2">Si continuas, se convertir&aacute;n autom&aacute;ticamente:</p>
         <div id="upper-list" class="mt-3 space-y-1"></div>
       </div>
       <div class="px-6 py-3 border-t border-gray-200 flex items-center justify-end gap-2">
-        <button onclick="upperResolve(false)" class="px-4 py-2 text-sm text-gray-600 hover:bg-gray-100 rounded-lg transition">No convertir</button>
-        <button onclick="upperResolve(true)" class="px-4 py-2 text-sm bg-blue-600 hover:bg-blue-700 text-white rounded-lg transition">Convertir a may&uacute;sculas</button>
+        <button onclick="upperResolve(false)" data-i18n="upper.no" class="px-4 py-2 text-sm text-gray-600 hover:bg-gray-100 rounded-lg transition">No convertir</button>
+        <button onclick="upperResolve(true)" data-i18n="upper.yes" class="px-4 py-2 text-sm bg-blue-600 hover:bg-blue-700 text-white rounded-lg transition">Convertir a may&uacute;sculas</button>
       </div>
     </div>
   </div>
@@ -259,13 +353,13 @@
   <div id="dup-modal" class="hidden fixed inset-0 z-50 modal-backdrop flex items-center justify-center p-4">
     <div class="bg-white rounded-xl shadow-2xl w-full max-w-lg max-h-[80vh] flex flex-col">
       <div class="px-6 py-4 border-b border-gray-200">
-        <h2 class="text-lg font-semibold text-gray-800">SRN duplicados detectados</h2>
+        <h2 data-i18n="dup.title" class="text-lg font-semibold text-gray-800">SRN duplicados detectados</h2>
         <p id="dup-summary" class="text-xs text-gray-500 mt-0.5"></p>
       </div>
       <div id="dup-list" class="px-6 py-4 overflow-y-auto flex-1"></div>
       <div class="px-6 py-3 border-t border-gray-200 flex items-center justify-end gap-2">
-        <button onclick="cancelDupModal()" class="px-4 py-2 text-sm text-gray-600 hover:bg-gray-100 rounded-lg transition">Cancelar</button>
-        <button onclick="continueDupModal()" class="px-4 py-2 text-sm bg-blue-600 hover:bg-blue-700 text-white rounded-lg transition">Continuar sin duplicados</button>
+        <button onclick="cancelDupModal()" data-i18n="dup.cancel" class="px-4 py-2 text-sm text-gray-600 hover:bg-gray-100 rounded-lg transition">Cancelar</button>
+        <button onclick="continueDupModal()" data-i18n="dup.continue" class="px-4 py-2 text-sm bg-blue-600 hover:bg-blue-700 text-white rounded-lg transition">Continuar sin duplicados</button>
       </div>
     </div>
   </div>
@@ -275,42 +369,439 @@
     <div class="bg-white rounded-xl shadow-2xl w-full max-w-4xl max-h-[80vh] flex flex-col">
       <div class="px-6 py-4 border-b border-gray-200 flex items-center justify-between">
         <div>
-          <h2 class="text-lg font-semibold text-gray-800">Configuraci&oacute;n</h2>
-          <p class="text-xs text-gray-500 mt-0.5">Columnas, procesamiento m&uacute;ltiple y exportaci&oacute;n a Excel</p>
+          <h2 data-i18n="settings.mainTitle" class="text-lg font-semibold text-gray-800">Configuraci&oacute;n</h2>
+          <p data-i18n="settings.subtitle" class="text-xs text-gray-500 mt-0.5">Columnas, procesamiento m&uacute;ltiple y exportaci&oacute;n a Excel</p>
         </div>
         <button onclick="closeSettings()" class="p-1 hover:bg-gray-100 rounded-lg transition">
           <svg class="w-5 h-5 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/></svg>
         </button>
       </div>
       <div id="settings-body" class="px-6 py-4 overflow-y-auto flex-1">
-        <p class="text-sm text-gray-400 text-center py-8">Realiza una b&uacute;squeda primero para descubrir los campos disponibles</p>
+        <p data-i18n="settings.empty" class="text-sm text-gray-400 text-center py-8">Realiza una b&uacute;squeda primero para descubrir los campos disponibles</p>
       </div>
       <div class="px-6 py-3 border-t border-gray-200 flex items-center justify-between">
-        <button onclick="resetSettings()" class="text-xs text-gray-400 hover:text-red-500 transition">Restablecer valores por defecto</button>
+        <button onclick="resetSettings()" data-i18n="settings.reset" class="text-xs text-gray-400 hover:text-red-500 transition">Restablecer valores por defecto</button>
         <div class="flex gap-2">
-          <button onclick="closeSettings()" class="px-4 py-2 text-sm text-gray-600 hover:bg-gray-100 rounded-lg transition">Cancelar</button>
-          <button onclick="saveSettings()" class="px-4 py-2 text-sm bg-blue-600 hover:bg-blue-700 text-white rounded-lg transition">Guardar</button>
+          <button onclick="closeSettings()" data-i18n="settings.cancel" class="px-4 py-2 text-sm text-gray-600 hover:bg-gray-100 rounded-lg transition">Cancelar</button>
+          <button onclick="saveSettings()" data-i18n="settings.save" class="px-4 py-2 text-sm bg-blue-600 hover:bg-blue-700 text-white rounded-lg transition">Guardar</button>
         </div>
       </div>
     </div>
   </div>
 
   <script>
-    var APP_VERSION = 'v5.2.2';
+    var APP_VERSION = 'v5.3';
     var LS_CHANGELOG_KEY = 'eudamed_changelog_viewed';
-    var CHANGELOG_VERSIONS = ['v5.2.2', 'v5.2.1', 'v5.2'];
+    var CHANGELOG_VERSIONS = ['v5.3', 'v5.2.2', 'v5.2.1', 'v5.2'];
+
+    // UI translations only. EUDAMED coded values, Yes/No and API language stay unchanged.
+    var LS_LANG = 'eudamed_lang';
+    var LS_THEME = 'eudamed_theme';
+    var I18N = {
+      es: {
+        'app.title': 'Buscador SRN - EUDAMED',
+        'app.subtitle': 'Consulta dispositivos m\u00e9dicos por Single Registration Number',
+        'nav.news': 'Novedades',
+        'nav.badge': 'Nuevo',
+        'tab.single': 'B\u00fasqueda simple',
+        'tab.batch': 'B\u00fasqueda m\u00faltiple',
+        'search.srnLabel': 'SRN (Single Registration Number)',
+        'search.srnPlaceholder': 'Ej: CA-MF-000013010',
+        'search.button': 'Buscar',
+        'search.stop': 'Detener',
+        'search.other': 'Otras opciones de b\u00fasqueda',
+        'search.byField': 'Buscar por campo',
+        'search.selectField': 'Seleccionar campo...',
+        'search.value': 'Valor',
+        'search.placeholderValue': 'Valor a buscar...',
+        'batch.importLabel': 'Importar lista de SRN',
+        'batch.file': 'Seleccionar archivo Excel/CSV',
+        'batch.template': 'Plantilla',
+        'batch.templateTitle': 'Descargar plantilla',
+        'batch.col': 'Columna SRN',
+        'batch.auto': 'Detectar autom\u00e1ticamente',
+        'batch.start': 'Iniciar',
+        'status.processing': 'Procesando...',
+        'status.initial': 'Iniciando...',
+        'results.title': 'Resultados',
+        'results.batchTitle': 'Resultados consolidados',
+        'results.count': '{n} registros',
+        'settings.iconTitle': 'Configurar columnas de exportaci\u00f3n',
+        'export.single': 'Exportar a Excel',
+        'export.batch': 'Exportar todo a Excel',
+        'empty.initial': 'Ingresa un SRN y presiona Buscar',
+        'upper.title': 'SRN con min\u00fasculas detectados',
+        'upper.p1': 'Los SRN en EUDAMED siempre usan letras may\u00fasculas.',
+        'upper.p2': 'Si continuas, se convertir\u00e1n autom\u00e1ticamente:',
+        'upper.no': 'No convertir',
+        'upper.yes': 'Convertir a may\u00fasculas',
+        'dup.title': 'SRN duplicados detectados',
+        'dup.cancel': 'Cancelar',
+        'dup.continue': 'Continuar sin duplicados',
+        'dup.summary': '{n} SRN duplicado(s) de un total de {total}',
+        'dup.detected': 'Detectados {n} SRN',
+        'dup.unique': ', {n} \u00fanicos tras eliminar duplicados',
+        'dup.none': 'No se detectaron SRN v\u00e1lidos en el archivo.',
+        'settings.mainTitle': 'Configuraci\u00f3n',
+        'settings.subtitle': 'Columnas, procesamiento m\u00faltiple y exportaci\u00f3n a Excel',
+        'settings.empty': 'Realiza una b\u00fasqueda primero para descubrir los campos disponibles',
+        'settings.language': 'Idioma',
+        'settings.themeDark': 'Activar modo oscuro',
+        'settings.themeLight': 'Activar modo claro',
+        'settings.processSection': 'Procesamiento m\u00faltiple',
+        'settings.autoUpper': 'Convertir min\u00fasculas a may\u00fasculas',
+        'settings.autoUpperHint': 'SRN con letras en min\u00fascula se convierten autom\u00e1ticamente',
+        'settings.upperSilent': 'No preguntar (procesar sin conversi\u00f3n)',
+        'settings.autoDedup': 'Eliminar duplicados',
+        'settings.autoDedupHint': 'Mantiene solo la primera aparici\u00f3n de cada SRN',
+        'settings.dedupSilent': 'No preguntar (mantener duplicados)',
+        'settings.parallel': 'Procesamiento paralelo',
+        'settings.parallelHint': 'Procesa 5 SRNs simult\u00e1neamente',
+        'settings.defaultFields': 'Campos por defecto (siempre incluidos)',
+        'settings.extraFields': 'Campos adicionales',
+        'settings.all': 'Todos',
+        'settings.none': 'Ninguno',
+        'settings.searchField': 'Buscar campo...',
+        'settings.reset': 'Restablecer valores por defecto',
+        'settings.cancel': 'Cancelar',
+        'settings.save': 'Guardar',
+        'msg.enterSrn': 'Introduce un SRN o selecciona un campo de b\u00fasqueda.',
+        'msg.enterValue': 'Introduce un valor para buscar.',
+        'msg.downloading': 'Descargando datos de EUDAMED...',
+        'msg.gettingAddress': 'Obteniendo direcci\u00f3n registrada...',
+        'msg.gettingOperator': 'Obteniendo informaci\u00f3n del operador econ\u00f3mico...',
+        'msg.gettingOperators': 'Obteniendo informaci\u00f3n de operadores econ\u00f3micos...',
+        'msg.operatorsCount': '{n} operadores',
+        'msg.recordsLoaded': '{n} registros cargados. {next}',
+        'msg.nextPage': 'Descargando siguiente p\u00e1gina...',
+        'msg.cancelled': 'B\u00fasqueda cancelada',
+        'msg.completed': 'Completado',
+        'msg.recordsDone': '{n} registros cargados.',
+        'msg.error': 'Error: {msg}',
+        'msg.jsonInvalid': 'JSON inv\u00e1lido',
+        'msg.noResultsSrn': 'No se encontraron resultados para este SRN',
+        'msg.noResultsField': 'No se encontraron resultados',
+        'msg.noResultsCombined': 'No se encontraron resultados para esta combinaci\u00f3n',
+        'msg.batchProcessing': 'Procesando {srn}...',
+        'msg.batchRecords': '{srn}: {n} registros...',
+        'msg.batchOk': '\u2713 {srn}: {n} registros',
+        'msg.batchOperator': 'Obteniendo datos del operador econ\u00f3mico...',
+        'msg.batchCompleted': 'Completado: {done}/{total}',
+        'msg.batchTotal': 'Total: {n} registros de {total} SRN',
+        'msg.fileEmpty': 'El archivo est\u00e1 vac\u00edo.',
+        'msg.fileError': 'Error leyendo el archivo: {err}',
+        'excel.sheetSingle': 'Resultados SRN',
+        'excel.sheetBatch': 'Consolidado',
+        'fields.SRN': 'SRN',
+        'fields.BASIC_UDI': 'Basic UDI-DI',
+        'fields.PRIMARY_DI': 'UDI-DI principal',
+        'fields.TRADE_NAME': 'Nombre comercial',
+        'fields.RISK_CLASS_ID': 'Clase de riesgo',
+        'fields.MF_NAME': 'Fabricante',
+        'fields.MF_ADDRESS': 'Direcci\u00f3n registrada',
+        'fields.REFERENCE': 'N\u00famero de referencia de cat\u00e1logo',
+        'fields.NOMENCLATURE_CODE': 'C\u00f3digo(s) de nomenclatura',
+        'fields.DEVICE_MODEL': 'Modelo de dispositivo',
+        'fields.__VAT': 'N\u00famero de IVA europeo',
+        'fields.__EORI': 'EORI',
+        'fields.__TRADE_REGISTER': 'N\u00famero de registro mercantil'
+      },
+      en: {
+        'app.title': 'SRN Search - EUDAMED',
+        'app.subtitle': 'Look up medical devices by Single Registration Number',
+        'nav.news': "What's new",
+        'nav.badge': 'New',
+        'tab.single': 'Single search',
+        'tab.batch': 'Batch search',
+        'search.srnLabel': 'SRN (Single Registration Number)',
+        'search.srnPlaceholder': 'e.g. CA-MF-000013010',
+        'search.button': 'Search',
+        'search.stop': 'Stop',
+        'search.other': 'Other search options',
+        'search.byField': 'Search by field',
+        'search.selectField': 'Select field...',
+        'search.value': 'Value',
+        'search.placeholderValue': 'Value to search...',
+        'batch.importLabel': 'Import SRN list',
+        'batch.file': 'Select Excel/CSV file',
+        'batch.template': 'Template',
+        'batch.templateTitle': 'Download template',
+        'batch.col': 'SRN column',
+        'batch.auto': 'Detect automatically',
+        'batch.start': 'Start',
+        'status.processing': 'Processing...',
+        'status.initial': 'Starting...',
+        'results.title': 'Results',
+        'results.batchTitle': 'Consolidated results',
+        'results.count': '{n} records',
+        'settings.iconTitle': 'Configure export columns',
+        'export.single': 'Export to Excel',
+        'export.batch': 'Export all to Excel',
+        'empty.initial': 'Enter an SRN and click Search',
+        'upper.title': 'Lowercase SRNs detected',
+        'upper.p1': 'EUDAMED SRNs always use uppercase letters.',
+        'upper.p2': 'If you continue, they will be converted automatically:',
+        'upper.no': 'Do not convert',
+        'upper.yes': 'Convert to uppercase',
+        'dup.title': 'Duplicate SRNs detected',
+        'dup.cancel': 'Cancel',
+        'dup.continue': 'Continue without duplicates',
+        'dup.summary': '{n} duplicate SRN(s) out of {total} total',
+        'dup.detected': 'Detected {n} SRNs',
+        'dup.unique': ', {n} unique after removing duplicates',
+        'dup.none': 'No valid SRNs were found in the file.',
+        'settings.mainTitle': 'Settings',
+        'settings.subtitle': 'Columns, batch processing and Excel export',
+        'settings.empty': 'Run a search first to discover available fields',
+        'settings.language': 'Language',
+        'settings.themeDark': 'Switch to dark mode',
+        'settings.themeLight': 'Switch to light mode',
+        'settings.processSection': 'Batch processing',
+        'settings.autoUpper': 'Convert lowercase to uppercase',
+        'settings.autoUpperHint': 'Lowercase SRNs are converted automatically',
+        'settings.upperSilent': 'Do not ask (process without conversion)',
+        'settings.autoDedup': 'Remove duplicates',
+        'settings.autoDedupHint': 'Keeps only the first occurrence of each SRN',
+        'settings.dedupSilent': 'Do not ask (keep duplicates)',
+        'settings.parallel': 'Parallel processing',
+        'settings.parallelHint': 'Processes 5 SRNs simultaneously',
+        'settings.defaultFields': 'Default fields (always included)',
+        'settings.extraFields': 'Additional fields',
+        'settings.all': 'All',
+        'settings.none': 'None',
+        'settings.searchField': 'Search field...',
+        'settings.reset': 'Reset to defaults',
+        'settings.cancel': 'Cancel',
+        'settings.save': 'Save',
+        'msg.enterSrn': 'Enter an SRN or select a search field.',
+        'msg.enterValue': 'Enter a value to search for.',
+        'msg.downloading': 'Downloading data from EUDAMED...',
+        'msg.gettingAddress': 'Retrieving registered address...',
+        'msg.gettingOperator': 'Retrieving economic operator information...',
+        'msg.gettingOperators': 'Retrieving economic operators information...',
+        'msg.operatorsCount': '{n} operators',
+        'msg.recordsLoaded': '{n} records loaded. {next}',
+        'msg.nextPage': 'Downloading next page...',
+        'msg.cancelled': 'Search cancelled',
+        'msg.completed': 'Completed',
+        'msg.recordsDone': '{n} records loaded.',
+        'msg.error': 'Error: {msg}',
+        'msg.jsonInvalid': 'Invalid JSON',
+        'msg.noResultsSrn': 'No results found for this SRN',
+        'msg.noResultsField': 'No results found',
+        'msg.noResultsCombined': 'No results found for this combination',
+        'msg.batchProcessing': 'Processing {srn}...',
+        'msg.batchRecords': '{srn}: {n} records...',
+        'msg.batchOk': '\u2713 {srn}: {n} records',
+        'msg.batchOperator': 'Retrieving economic operator data...',
+        'msg.batchCompleted': 'Completed: {done}/{total}',
+        'msg.batchTotal': 'Total: {n} records from {total} SRNs',
+        'msg.fileEmpty': 'The file is empty.',
+        'msg.fileError': 'Error reading file: {err}',
+        'excel.sheetSingle': 'SRN Results',
+        'excel.sheetBatch': 'Consolidated',
+        'fields.SRN': 'SRN',
+        'fields.BASIC_UDI': 'Basic UDI-DI',
+        'fields.PRIMARY_DI': 'Primary UDI-DI',
+        'fields.TRADE_NAME': 'Trade Name',
+        'fields.RISK_CLASS_ID': 'Risk Class',
+        'fields.MF_NAME': 'Manufacturer',
+        'fields.MF_ADDRESS': 'Registered Address',
+        'fields.REFERENCE': 'Reference Catalogue Number',
+        'fields.NOMENCLATURE_CODE': 'Nomenclature Code(s)',
+        'fields.DEVICE_MODEL': 'Device Model',
+        'fields.__VAT': 'European VAT Number',
+        'fields.__EORI': 'EORI',
+        'fields.__TRADE_REGISTER': 'Trade Register Number'
+      },
+      pt: {
+        'app.title': 'Pesquisa SRN - EUDAMED',
+        'app.subtitle': 'Consulte dispositivos m\u00e9dicos por Single Registration Number',
+        'nav.news': 'Novidades',
+        'nav.badge': 'Novo',
+        'tab.single': 'Pesquisa simples',
+        'tab.batch': 'Pesquisa m\u00faltipla',
+        'search.srnLabel': 'SRN (Single Registration Number)',
+        'search.srnPlaceholder': 'Ex.: CA-MF-000013010',
+        'search.button': 'Pesquisar',
+        'search.stop': 'Parar',
+        'search.other': 'Outras op\u00e7\u00f5es de pesquisa',
+        'search.byField': 'Pesquisar por campo',
+        'search.selectField': 'Selecionar campo...',
+        'search.value': 'Valor',
+        'search.placeholderValue': 'Valor a pesquisar...',
+        'batch.importLabel': 'Importar lista de SRN',
+        'batch.file': 'Selecionar ficheiro Excel/CSV',
+        'batch.template': 'Modelo',
+        'batch.templateTitle': 'Transferir modelo',
+        'batch.col': 'Coluna SRN',
+        'batch.auto': 'Detetar automaticamente',
+        'batch.start': 'Iniciar',
+        'status.processing': 'A processar...',
+        'status.initial': 'A iniciar...',
+        'results.title': 'Resultados',
+        'results.batchTitle': 'Resultados consolidados',
+        'results.count': '{n} registos',
+        'settings.iconTitle': 'Configurar colunas de exporta\u00e7\u00e3o',
+        'export.single': 'Exportar para Excel',
+        'export.batch': 'Exportar tudo para Excel',
+        'empty.initial': 'Introduza um SRN e clique em Pesquisar',
+        'upper.title': 'SRNs em min\u00fasculas detetados',
+        'upper.p1': 'Os SRNs na EUDAMED usam sempre letras mai\u00fasculas.',
+        'upper.p2': 'Se continuar, ser\u00e3o convertidos automaticamente:',
+        'upper.no': 'N\u00e3o converter',
+        'upper.yes': 'Converter em mai\u00fasculas',
+        'dup.title': 'SRNs duplicados detetados',
+        'dup.cancel': 'Cancelar',
+        'dup.continue': 'Continuar sem duplicados',
+        'dup.summary': '{n} SRN duplicado(s) de um total de {total}',
+        'dup.detected': 'Detetados {n} SRNs',
+        'dup.unique': ', {n} \u00fanicos ap\u00f3s remover duplicados',
+        'dup.none': 'N\u00e3o foram detetados SRNs v\u00e1lidos no ficheiro.',
+        'settings.mainTitle': 'Configura\u00e7\u00e3o',
+        'settings.subtitle': 'Colunas, processamento em lote e exporta\u00e7\u00e3o para Excel',
+        'settings.empty': 'Fa\u00e7a uma pesquisa primeiro para descobrir os campos dispon\u00edveis',
+        'settings.language': 'Idioma',
+        'settings.themeDark': 'Ativar modo escuro',
+        'settings.themeLight': 'Ativar modo claro',
+        'settings.processSection': 'Processamento em lote',
+        'settings.autoUpper': 'Converter min\u00fasculas em mai\u00fasculas',
+        'settings.autoUpperHint': 'SRNs com letras min\u00fasculas s\u00e3o convertidos automaticamente',
+        'settings.upperSilent': 'N\u00e3o perguntar (processar sem convers\u00e3o)',
+        'settings.autoDedup': 'Remover duplicados',
+        'settings.autoDedupHint': 'Mant\u00e9m apenas a primeira ocorr\u00eancia de cada SRN',
+        'settings.dedupSilent': 'N\u00e3o perguntar (manter duplicados)',
+        'settings.parallel': 'Processamento paralelo',
+        'settings.parallelHint': 'Processa 5 SRNs simultaneamente',
+        'settings.defaultFields': 'Campos predefinidos (sempre inclu\u00eddos)',
+        'settings.extraFields': 'Campos adicionais',
+        'settings.all': 'Todos',
+        'settings.none': 'Nenhum',
+        'settings.searchField': 'Pesquisar campo...',
+        'settings.reset': 'Repor valores predefinidos',
+        'settings.cancel': 'Cancelar',
+        'settings.save': 'Guardar',
+        'msg.enterSrn': 'Introduza um SRN ou selecione um campo de pesquisa.',
+        'msg.enterValue': 'Introduza um valor para pesquisar.',
+        'msg.downloading': 'A transferir dados da EUDAMED...',
+        'msg.gettingAddress': 'A obter morada registada...',
+        'msg.gettingOperator': 'A obter informa\u00e7\u00f5es do operador econ\u00f3mico...',
+        'msg.gettingOperators': 'A obter informa\u00e7\u00f5es dos operadores econ\u00f3micos...',
+        'msg.operatorsCount': '{n} operadores',
+        'msg.recordsLoaded': '{n} registos carregados. {next}',
+        'msg.nextPage': 'A transferir a p\u00e1gina seguinte...',
+        'msg.cancelled': 'Pesquisa cancelada',
+        'msg.completed': 'Conclu\u00eddo',
+        'msg.recordsDone': '{n} registos carregados.',
+        'msg.error': 'Erro: {msg}',
+        'msg.jsonInvalid': 'JSON inv\u00e1lido',
+        'msg.noResultsSrn': 'N\u00e3o foram encontrados resultados para este SRN',
+        'msg.noResultsField': 'N\u00e3o foram encontrados resultados',
+        'msg.noResultsCombined': 'N\u00e3o foram encontrados resultados para esta combina\u00e7\u00e3o',
+        'msg.batchProcessing': 'A processar {srn}...',
+        'msg.batchRecords': '{srn}: {n} registos...',
+        'msg.batchOk': '\u2713 {srn}: {n} registos',
+        'msg.batchOperator': 'A obter dados do operador econ\u00f3mico...',
+        'msg.batchCompleted': 'Conclu\u00eddo: {done}/{total}',
+        'msg.batchTotal': 'Total: {n} registos de {total} SRNs',
+        'msg.fileEmpty': 'O ficheiro est\u00e1 vazio.',
+        'msg.fileError': 'Erro ao ler o ficheiro: {err}',
+        'excel.sheetSingle': 'Resultados SRN',
+        'excel.sheetBatch': 'Consolidado',
+        'fields.SRN': 'SRN',
+        'fields.BASIC_UDI': 'Basic UDI-DI',
+        'fields.PRIMARY_DI': 'UDI-DI principal',
+        'fields.TRADE_NAME': 'Nome comercial',
+        'fields.RISK_CLASS_ID': 'Classe de risco',
+        'fields.MF_NAME': 'Fabricante',
+        'fields.MF_ADDRESS': 'Morada registada',
+        'fields.REFERENCE': 'N\u00famero de refer\u00eancia do cat\u00e1logo',
+        'fields.NOMENCLATURE_CODE': 'C\u00f3digo(s) de nomenclatura',
+        'fields.DEVICE_MODEL': 'Modelo do dispositivo',
+        'fields.__VAT': 'N\u00famero de IVA europeu',
+        'fields.__EORI': 'EORI',
+        'fields.__TRADE_REGISTER': 'N\u00famero de registo comercial'
+      }
+    };
+    var LANG = 'en';
+    try {
+      var savedLang = localStorage.getItem(LS_LANG);
+      if (savedLang && I18N[savedLang]) LANG = savedLang;
+    } catch (e) {}
+    var THEME = 'light';
+    try {
+      var savedTheme = localStorage.getItem(LS_THEME);
+      if (savedTheme === 'dark' || savedTheme === 'light') THEME = savedTheme;
+    } catch (e) {}
+
+    function t(key, params, fallback) {
+      var dict = I18N[LANG] || I18N.en;
+      var s = dict[key];
+      if (s === undefined) s = I18N.en[key];
+      if (s === undefined) s = fallback === undefined ? key : fallback;
+      if (params) {
+        for (var p in params) {
+          if (Object.prototype.hasOwnProperty.call(params, p)) {
+            s = s.split('{' + p + '}').join(String(params[p]));
+          }
+        }
+      }
+      return s;
+    }
+
+    function generatedFieldLabel(key) {
+      return key.replace(/_/g, ' ').replace(/\b\w/g, function(c) { return c.toUpperCase(); }).replace(/ Id$/i, '');
+    }
+    function fieldLabel(key) {
+      return t('fields.' + key, null, generatedFieldLabel(key));
+    }
+
+    function changeLanguage(newLang) {
+      if (!I18N[newLang] || newLang === LANG) return;
+      try { localStorage.setItem(LS_LANG, newLang); } catch (e) {}
+      location.reload();
+    }
+
+    function applyTheme() {
+      document.body.classList.toggle('theme-dark', THEME === 'dark');
+      var btn = document.getElementById('theme-toggle');
+      if (btn) btn.title = t(THEME === 'dark' ? 'settings.themeLight' : 'settings.themeDark');
+    }
+
+    function toggleTheme() {
+      THEME = THEME === 'dark' ? 'light' : 'dark';
+      try { localStorage.setItem(LS_THEME, THEME); } catch (e) {}
+      applyTheme();
+    }
+
+    function applyI18n() {
+      var nodes = document.querySelectorAll('[data-i18n]');
+      for (var i = 0; i < nodes.length; i++) {
+        nodes[i].textContent = t(nodes[i].getAttribute('data-i18n'));
+      }
+      var attrs = ['placeholder', 'title'];
+      for (var a = 0; a < attrs.length; a++) {
+        var attr = attrs[a];
+        var list = document.querySelectorAll('[data-i18n-' + attr + ']');
+        for (var j = 0; j < list.length; j++) {
+          list[j][attr] = t(list[j].getAttribute('data-i18n-' + attr));
+        }
+      }
+      document.documentElement.lang = LANG;
+      document.title = t('app.title');
+    }
 
     var DEFAULT_FIELDS = [
-      { key: 'BASIC_UDI',     label: 'Basic UDI-DI' },
-      { key: 'PRIMARY_DI',    label: 'Primary UDI-DI' },
-      { key: 'TRADE_NAME',    label: 'Trade Name' },
-      { key: 'RISK_CLASS_ID', label: 'Risk Class' },
-      { key: 'MF_NAME',       label: 'Manufacturer' },
-      { key: 'MF_ADDRESS',    label: 'Registered Address' },
-      { key: 'REFERENCE',     label: 'Reference Catalogue Number' },
-      { key: 'NOMENCLATURE_CODE', label: 'Nomenclature Code(s)' }
+      { key: 'BASIC_UDI',     label: fieldLabel('BASIC_UDI') },
+      { key: 'PRIMARY_DI',    label: fieldLabel('PRIMARY_DI') },
+      { key: 'TRADE_NAME',    label: fieldLabel('TRADE_NAME') },
+      { key: 'RISK_CLASS_ID', label: fieldLabel('RISK_CLASS_ID') },
+      { key: 'MF_NAME',       label: fieldLabel('MF_NAME') },
+      { key: 'MF_ADDRESS',    label: fieldLabel('MF_ADDRESS') },
+      { key: 'REFERENCE',     label: fieldLabel('REFERENCE') },
+      { key: 'NOMENCLATURE_CODE', label: fieldLabel('NOMENCLATURE_CODE') }
     ];
-    var SRN_FIELD = { key: '__SRN', label: 'SRN' };
+    var SRN_FIELD = { key: '__SRN', label: fieldLabel('SRN') };
 
     var LS_KEY = 'eudamed_field_settings';
     var LS_FIELDS_KEY = 'eudamed_available_fields';
@@ -333,9 +824,9 @@
     var currentTab = 'single';
     var fetchActorCache = {};
     var ACTOR_FIELDS = [
-      { key: '__VAT', label: 'European VAT Number' },
-      { key: '__EORI', label: 'EORI' },
-      { key: '__TRADE_REGISTER', label: 'Trade Register Number' }
+      { key: '__VAT', label: fieldLabel('__VAT') },
+      { key: '__EORI', label: fieldLabel('__EORI') },
+      { key: '__TRADE_REGISTER', label: fieldLabel('__TRADE_REGISTER') }
     ];
 
     var TRANSLATIONS = {
@@ -463,14 +954,21 @@
       try {
         var s = localStorage.getItem(LS_FIELDS_KEY);
         var arr = s ? JSON.parse(s) : [];
-        arr.forEach(function(f) {
-          if (f.key && f.key.endsWith('_ID')) f.label = f.key.replace(/_/g, ' ').replace(/\b\w/g, function(c) { return c.toUpperCase(); }).replace(/ Id$/i, '');
+        var out = [];
+        arr.forEach(function(item) {
+          var key = typeof item === 'string' ? item : (item && item.key);
+          if (key && !out.some(function(f) { return f.key === key; })) {
+            out.push({ key: key, label: fieldLabel(key) });
+          }
         });
-        return arr;
+        return out;
       } catch (e) { return []; }
     }
     function persistAvailableFields() {
-      try { localStorage.setItem(LS_FIELDS_KEY, JSON.stringify(availableFields)); } catch (e) {}
+      try {
+        var keys = availableFields.map(function(f) { return f.key; });
+        localStorage.setItem(LS_FIELDS_KEY, JSON.stringify(keys));
+      } catch (e) {}
     }
     function loadBatchConfig() {
       try {
@@ -497,9 +995,7 @@
       for (var i = 0; i < keys.length; i++) {
         var k = keys[i];
         if (!defaultKeys[k] && !existingKeys[k]) {
-          var lbl = k.replace(/_/g, ' ').replace(/\b\w/g, function(c) { return c.toUpperCase(); });
-          if (k.endsWith('_ID')) lbl = lbl.replace(/ Id$/i, '');
-          availableFields.push({ key: k, label: lbl });
+          availableFields.push({ key: k, label: fieldLabel(k) });
           existingKeys[k] = true;
           added = true;
         }
@@ -531,9 +1027,10 @@
     }
     function setLoading(msg) {
       document.getElementById('empty-state').classList.remove('hidden');
-      document.getElementById('empty-text').innerHTML =
-        '<span class="inline-flex items-center gap-2">' +
-        '<svg class="w-5 h-5 spinner text-blue-500" fill="none" viewBox="0 0 24 24"><circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle><path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z"></path></svg> ' + msg + '</span>';
+      var emptyEl = document.getElementById('empty-text');
+      emptyEl.innerHTML = '<span class="inline-flex items-center gap-2">' +
+        '<svg class="w-5 h-5 spinner text-blue-500" fill="none" viewBox="0 0 24 24"><circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle><path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z"></path></svg> <span data-role="loading-text"></span></span>';
+      emptyEl.querySelector('[data-role="loading-text"]').textContent = msg;
       document.getElementById('results-table').classList.add('hidden');
     }
     function showEmpty(msg) {
@@ -549,8 +1046,8 @@
       var selectedValue = fieldValue ? fieldValue.value.trim() : '';
       var srn = document.getElementById('srn-input').value.trim();
 
-      if (!srn && !selectedField) { showError('Introduce un SRN o selecciona un campo de b\u00fasqueda.'); return; }
-      if (!srn && selectedField && !selectedValue) { showError('Introduce un valor para buscar.'); return; }
+      if (!srn && !selectedField) { showError(t('msg.enterSrn')); return; }
+      if (!srn && selectedField && !selectedValue) { showError(t('msg.enterValue')); return; }
 
       hideError();
       rawItems = [];
@@ -561,7 +1058,7 @@
       setSearchActive(true);
       setHeaders();
       renderTable();
-      setLoading('Descargando datos de EUDAMED...');
+      setLoading(t('msg.downloading'));
 
       if (srn && selectedField && selectedValue) {
         searchCombined(srn, selectedField, selectedValue);
@@ -579,13 +1076,13 @@
       var nextUrl = baseUrl + '/eudamed/udi?MF_SRN=' +
         encodeURIComponent(srn) + '&format=json&api-version=v1.0';
 
-      setLoading('Obteniendo direcci\u00f3n registrada...');
+      setLoading(t('msg.gettingAddress'));
       await fetchAddress(srn);
 
       try {
         while (nextUrl) {
           if (!abortCtrl) break;
-          showStatus('Descargando datos de EUDAMED...', results.length + ' registros');
+          showStatus(t('msg.downloading'), t('results.count', { n: results.length }));
           var data = await fetchRetry(nextUrl, abortCtrl.signal);
           var items = (data && data.value) ? data.value : [];
           if (!items.length) break;
@@ -601,8 +1098,7 @@
           }
 
           renderTable();
-          setLoading(results.length + ' registros cargados. ' +
-            (data.nextLink ? 'Descargando siguiente p\u00e1gina...' : 'Procesando...'));
+          setLoading(t('msg.recordsLoaded', { n: results.length, next: data.nextLink ? t('msg.nextPage') : t('status.processing') }));
 
           if (data.nextLink && data.nextLink !== '') {
             var nl = data.nextLink;
@@ -613,20 +1109,20 @@
         }
 
         if (!abortCtrl) {
-          showStatus('B\u00fasqueda cancelada', results.length + ' registros');
+          showStatus(t('msg.cancelled'), t('results.count', { n: results.length }));
         } else if (results.length > 0) {
-          showStatus('Completado', results.length + ' registros cargados.');
+          showStatus(t('msg.completed'), t('msg.recordsDone', { n: results.length }));
         }
         setTimeout(hideStatus, 3000);
       } catch (e) {
         if (e.name !== 'AbortError' && results.length === 0) {
-          showError('Error: ' + e.message);
+          showError(t('msg.error', { msg: e.message }));
           hideStatus();
         }
       }
 
       if (results.length > 0 && abortCtrl) {
-        showStatus('Obteniendo informaci\u00f3n del operador econ\u00f3mico...', '');
+        showStatus(t('msg.gettingOperator'), '');
         await fetchActorInfo(srn, abortCtrl.signal, rawItems);
         renderTable();
       }
@@ -635,7 +1131,7 @@
         document.getElementById('empty-state').classList.add('hidden');
         document.getElementById('results-table').classList.remove('hidden');
       } else {
-        showEmpty('No se encontraron resultados para este SRN');
+        showEmpty(t('msg.noResultsSrn'));
       }
       setSearchActive(false);
       abortCtrl = null;
@@ -649,7 +1145,7 @@
       try {
         while (nextUrl) {
           if (!abortCtrl) break;
-          showStatus('Descargando datos de EUDAMED...', results.length + ' registros');
+          showStatus(t('msg.downloading'), t('results.count', { n: results.length }));
           var data = await fetchRetry(nextUrl, abortCtrl.signal);
           var items = (data && data.value) ? data.value : [];
           if (!items.length) break;
@@ -665,8 +1161,7 @@
           }
 
           renderTable();
-          setLoading(results.length + ' registros cargados. ' +
-            (data.nextLink ? 'Descargando siguiente p\u00e1gina...' : 'Procesando...'));
+          setLoading(t('msg.recordsLoaded', { n: results.length, next: data.nextLink ? t('msg.nextPage') : t('status.processing') }));
 
           if (data.nextLink && data.nextLink !== '') {
             var nl = data.nextLink;
@@ -677,14 +1172,14 @@
         }
 
         if (!abortCtrl) {
-          showStatus('B\u00fasqueda cancelada', results.length + ' registros');
+          showStatus(t('msg.cancelled'), t('results.count', { n: results.length }));
         } else if (results.length > 0) {
-          showStatus('Completado', results.length + ' registros cargados.');
+          showStatus(t('msg.completed'), t('msg.recordsDone', { n: results.length }));
         }
         setTimeout(hideStatus, 3000);
       } catch (e) {
         if (e.name !== 'AbortError' && results.length === 0) {
-          showError('Error: ' + e.message);
+          showError(t('msg.error', { msg: e.message }));
           hideStatus();
         }
       }
@@ -697,7 +1192,7 @@
         }
         var srnList = Object.keys(seenSrns);
         if (srnList.length > 0) {
-          showStatus('Obteniendo informaci\u00f3n de operadores econ\u00f3micos...', srnList.length + ' operadores');
+          showStatus(t('msg.gettingOperators'), t('msg.operatorsCount', { n: srnList.length }));
           for (var i = 0; i < srnList.length; i++) {
             await fetchActorInfo(srnList[i], abortCtrl.signal, rawItems);
           }
@@ -709,7 +1204,7 @@
         document.getElementById('empty-state').classList.add('hidden');
         document.getElementById('results-table').classList.remove('hidden');
       } else {
-        showEmpty('No se encontraron resultados');
+        showEmpty(t('msg.noResultsField'));
       }
       setSearchActive(false);
       abortCtrl = null;
@@ -720,13 +1215,13 @@
       var nextUrl = baseUrl + '/eudamed/udi?MF_SRN=' + encodeURIComponent(srn) +
         '&' + field + '=' + encodeURIComponent(value) + '&format=json&api-version=v1.0';
 
-      setLoading('Obteniendo direcci\u00f3n registrada...');
+      setLoading(t('msg.gettingAddress'));
       await fetchAddress(srn);
 
       try {
         while (nextUrl) {
           if (!abortCtrl) break;
-          showStatus('Descargando datos de EUDAMED...', results.length + ' registros');
+          showStatus(t('msg.downloading'), t('results.count', { n: results.length }));
           var data = await fetchRetry(nextUrl, abortCtrl.signal);
           var items = (data && data.value) ? data.value : [];
           if (!items.length) break;
@@ -742,8 +1237,7 @@
           }
 
           renderTable();
-          setLoading(results.length + ' registros cargados. ' +
-            (data.nextLink ? 'Descargando siguiente p\u00e1gina...' : 'Procesando...'));
+          setLoading(t('msg.recordsLoaded', { n: results.length, next: data.nextLink ? t('msg.nextPage') : t('status.processing') }));
 
           if (data.nextLink && data.nextLink !== '') {
             var nl = data.nextLink;
@@ -754,20 +1248,20 @@
         }
 
         if (!abortCtrl) {
-          showStatus('B\u00fasqueda cancelada', results.length + ' registros');
+          showStatus(t('msg.cancelled'), t('results.count', { n: results.length }));
         } else if (results.length > 0) {
-          showStatus('Completado', results.length + ' registros cargados.');
+          showStatus(t('msg.completed'), t('msg.recordsDone', { n: results.length }));
         }
         setTimeout(hideStatus, 3000);
       } catch (e) {
         if (e.name !== 'AbortError' && results.length === 0) {
-          showError('Error: ' + e.message);
+          showError(t('msg.error', { msg: e.message }));
           hideStatus();
         }
       }
 
       if (results.length > 0 && abortCtrl) {
-        showStatus('Obteniendo informaci\u00f3n del operador econ\u00f3mico...', '');
+        showStatus(t('msg.gettingOperator'), '');
         await fetchActorInfo(srn, abortCtrl.signal, rawItems);
         renderTable();
       }
@@ -776,7 +1270,7 @@
         document.getElementById('empty-state').classList.add('hidden');
         document.getElementById('results-table').classList.remove('hidden');
       } else {
-        showEmpty('No se encontraron resultados para esta combinaci\u00f3n');
+        showEmpty(t('msg.noResultsCombined'));
       }
       setSearchActive(false);
       abortCtrl = null;
@@ -840,7 +1334,7 @@
           });
           var txt = await resp.text();
           if (resp.ok) {
-            try { return JSON.parse(txt); } catch (e) { lastErr = 'JSON inv\u00e1lido'; }
+            try { return JSON.parse(txt); } catch (e) { lastErr = t('msg.jsonInvalid'); }
           } else {
             lastErr = 'HTTP ' + resp.status;
             if (resp.status !== 429 && resp.status < 500) break;
@@ -876,7 +1370,7 @@
       var tbody = document.getElementById('table-body');
       var cnt = document.getElementById('result-count');
       if (results.length === 0) { tbody.innerHTML = ''; cnt.textContent = ''; return; }
-      cnt.textContent = results.length + ' registros';
+      cnt.textContent = t('results.count', { n: results.length });
       var cols = getVisibleCols();
       tbody.innerHTML = results.map(function(row, idx) {
         return '<tr class="' + (idx % 2 === 0 ? 'bg-white' : 'bg-gray-50') + ' hover:bg-blue-50 transition">' +
@@ -904,39 +1398,39 @@
     function buildSettingsHtml() {
       var body = document.getElementById('settings-body');
       if (availableFields.length === 0) {
-        body.innerHTML = '<p class="text-sm text-gray-400 text-center py-8">Realiza una b\u00fasqueda primero para descubrir los campos disponibles</p>';
+        body.innerHTML = '<p class="text-sm text-gray-400 text-center py-8">' + t('settings.empty') + '</p>';
         settingsBuilt = false;
         return;
       }
       var html = '';
 
       html += '<div class="border-b border-gray-200 pb-4 mb-4">';
-      html += '<p class="text-xs font-semibold text-gray-500 uppercase tracking-wider mb-3">Procesamiento m&uacute;ltiple</p>';
+      html += '<p class="text-xs font-semibold text-gray-500 uppercase tracking-wider mb-3">' + t('settings.processSection') + '</p>';
 
       html += '<div class="flex items-center gap-3 mb-2">';
       html += '<label class="toggle"><input type="checkbox" id="cfg-auto-upper" onchange="toggleSilentDisable(\'upper\')"><span class="toggle-slider"></span></label>';
-      html += '<div><p class="text-sm text-gray-700 font-medium">Convertir min\u00fasculas a may\u00fasculas</p>';
-      html += '<p class="text-xs text-gray-400">SRN con letras en min\u00fascula se convierten autom\u00e1ticamente</p></div>';
+      html += '<div><p class="text-sm text-gray-700 font-medium">' + t('settings.autoUpper') + '</p>';
+      html += '<p class="text-xs text-gray-400">' + t('settings.autoUpperHint') + '</p></div>';
       html += '</div>';
       html += '<div id="row-upper-silent" class="flex items-center gap-2 ml-[52px] mb-4">';
       html += '<input type="checkbox" id="cfg-upper-silent" class="w-3.5 h-3.5 text-blue-600 rounded border-gray-300" />';
-      html += '<label for="cfg-upper-silent" class="text-xs text-gray-500">No preguntar (procesar sin conversi\u00f3n)</label>';
+      html += '<label for="cfg-upper-silent" class="text-xs text-gray-500">' + t('settings.upperSilent') + '</label>';
       html += '</div>';
 
       html += '<div class="flex items-center gap-3 mb-2">';
       html += '<label class="toggle"><input type="checkbox" id="cfg-auto-dedup" onchange="toggleSilentDisable(\'dedup\')"><span class="toggle-slider"></span></label>';
-      html += '<div><p class="text-sm text-gray-700 font-medium">Eliminar duplicados</p>';
-      html += '<p class="text-xs text-gray-400">Mantiene solo la primera aparici\u00f3n de cada SRN</p></div>';
+      html += '<div><p class="text-sm text-gray-700 font-medium">' + t('settings.autoDedup') + '</p>';
+      html += '<p class="text-xs text-gray-400">' + t('settings.autoDedupHint') + '</p></div>';
       html += '</div>';
       html += '<div id="row-dedup-silent" class="flex items-center gap-2 ml-[52px]">';
       html += '<input type="checkbox" id="cfg-dedup-silent" class="w-3.5 h-3.5 text-blue-600 rounded border-gray-300" />';
-      html += '<label for="cfg-dedup-silent" class="text-xs text-gray-500">No preguntar (mantener duplicados)</label>';
+      html += '<label for="cfg-dedup-silent" class="text-xs text-gray-500">' + t('settings.dedupSilent') + '</label>';
       html += '</div>';
 
       html += '<div class="flex items-center gap-3 mb-2">';
       html += '<label class="toggle"><input type="checkbox" id="cfg-parallel"><span class="toggle-slider"></span></label>';
-      html += '<div><p class="text-sm text-gray-700 font-medium">Procesamiento paralelo</p>';
-      html += '<p class="text-xs text-gray-400">Procesa 5 SRNs simult\u00e1neamente</p></div>';
+      html += '<div><p class="text-sm text-gray-700 font-medium">' + t('settings.parallel') + '</p>';
+      html += '<p class="text-xs text-gray-400">' + t('settings.parallelHint') + '</p></div>';
       html += '</div>';
 
       html += '</div>';
@@ -944,7 +1438,7 @@
       html += '<div class="grid grid-cols-2 gap-4">';
 
       html += '<div>';
-      html += '<p class="text-xs font-semibold text-gray-500 uppercase tracking-wider mb-2">Campos por defecto (siempre incluidos)</p>';
+      html += '<p class="text-xs font-semibold text-gray-500 uppercase tracking-wider mb-2">' + t('settings.defaultFields') + '</p>';
       html += '<div class="space-y-1">';
       DEFAULT_FIELDS.forEach(function(f) {
         html += '<div class="flex items-center gap-2 px-3 py-1.5 rounded bg-gray-50 text-sm text-gray-600">';
@@ -957,13 +1451,13 @@
 
       html += '<div>';
       html += '<div class="flex items-center justify-between mb-2">';
-      html += '<p class="text-xs font-semibold text-gray-500 uppercase tracking-wider">Campos adicionales</p>';
+      html += '<p class="text-xs font-semibold text-gray-500 uppercase tracking-wider">' + t('settings.extraFields') + '</p>';
       html += '<div class="flex gap-2">';
-      html += '<button onclick="toggleAllExtra(true)" class="text-xs text-blue-500 hover:text-blue-700">Todos</button>';
+      html += '<button onclick="toggleAllExtra(true)" class="text-xs text-blue-500 hover:text-blue-700">' + t('settings.all') + '</button>';
       html += '<span class="text-gray-300">|</span>';
-      html += '<button onclick="toggleAllExtra(false)" class="text-xs text-blue-500 hover:text-blue-700">Ninguno</button>';
+      html += '<button onclick="toggleAllExtra(false)" class="text-xs text-blue-500 hover:text-blue-700">' + t('settings.none') + '</button>';
       html += '</div></div>';
-      html += '<input id="extra-search" type="text" placeholder="Buscar campo..." oninput="filterExtraFields(this.value)" class="w-full px-3 py-1.5 text-sm border border-gray-200 rounded-lg mb-2 focus:outline-none focus:ring-1 focus:ring-blue-500" />';
+      html += '<input id="extra-search" type="text" placeholder="' + t('settings.searchField') + '" oninput="filterExtraFields(this.value)" class="w-full px-3 py-1.5 text-sm border border-gray-200 rounded-lg mb-2 focus:outline-none focus:ring-1 focus:ring-blue-500" />';
       html += '<div id="extra-fields-list" class="space-y-0.5 max-h-[248px] overflow-y-auto border border-gray-200 rounded-lg">';
       availableFields.forEach(function(f) {
         html += '<label class="check-item flex items-center gap-2 px-3 py-2 cursor-pointer rounded transition">';
@@ -1113,7 +1607,7 @@
         return { wch: Math.min(max + 2, 60) };
       });
       var wb = XLSX.utils.book_new();
-      XLSX.utils.book_append_sheet(wb, ws, 'Resultados SRN');
+      XLSX.utils.book_append_sheet(wb, ws, t('excel.sheetSingle'));
       var srn = document.getElementById('srn-input').value.trim() || 'busqueda';
       XLSX.writeFile(wb, 'EUDAMED_SRN_' + srn + '_' + new Date().toISOString().slice(0, 10) + '.xlsx');
     }
@@ -1136,13 +1630,16 @@
     ACTOR_FIELDS.forEach(function(af) {
       var existing = availableFields.find(function(f) { return f.key === af.key; });
       if (existing) {
-        existing.label = af.label;
+        existing.label = fieldLabel(af.key);
       } else {
-        availableFields.push(af);
+        availableFields.push({ key: af.key, label: fieldLabel(af.key) });
       }
     });
-    availableFields.sort(function(a, b) { return a.label.localeCompare(b.label); });
+    availableFields.sort(function(a, b) { return a.label.localeCompare(b.label, LANG); });
     persistAvailableFields();
+    applyTheme();
+    applyI18n();
+    document.getElementById('lang-select').value = LANG;
     setHeaders();
     updateChangelogBadge();
 
@@ -1168,10 +1665,10 @@
           var wb = XLSX.read(e.target.result, { type: 'array' });
           var ws = wb.Sheets[wb.SheetNames[0]];
           var data = XLSX.utils.sheet_to_json(ws, { header: 1 });
-          if (!data.length) { showError('El archivo est\u00e1 vac\u00edo.'); return; }
+          if (!data.length) { showError(t('msg.fileEmpty')); return; }
           var headers = data[0].map(function(h) { return String(h || '').trim(); });
           var select = document.getElementById('batch-col-select');
-          select.innerHTML = '<option value="">Detectar autom\u00e1ticamente</option>';
+          select.innerHTML = '<option value="">' + t('batch.auto') + '</option>';
           headers.forEach(function(h, i) {
             if (h) select.innerHTML += '<option value="' + i + '">' + esc(h) + '</option>';
           });
@@ -1215,7 +1712,7 @@
             finalizeSrns(final);
           }
         } catch (err) {
-          showError('Error leyendo el archivo: ' + err.message);
+          showError(t('msg.fileError', { err: err.message }));
         }
       };
       reader.readAsArrayBuffer(file);
@@ -1250,7 +1747,7 @@
       if (hasDups && !batchConfig.autoDedup && !batchConfig.autoDedupSilent) {
         dupFullList = srns;
         document.getElementById('dup-summary').textContent =
-          dups.length + ' SRN duplicado(s) de ' + srns.length + ' total';
+          t('dup.summary', { n: dups.length, total: srns.length });
         var html = '<div class="space-y-1">';
         dups.forEach(function(s) {
           html += '<div class="px-3 py-2 bg-gray-50 rounded-lg">';
@@ -1275,11 +1772,11 @@
       batchSrnList = final;
       document.getElementById('btn-batch-start').disabled = final.length === 0;
       if (final.length > 0) {
-        var msg = 'Detectados ' + srns.length + ' SRN';
-        if (hasDups && batchConfig.autoDedup) msg += ', ' + final.length + ' \u00fanicos tras eliminar duplicados';
+        var msg = t('dup.detected', { n: srns.length });
+        if (hasDups && batchConfig.autoDedup) msg += t('dup.unique', { n: final.length });
         showBatchLog(msg + '.');
       } else {
-        showBatchLog('No se detectaron SRN v\u00e1lidos en el archivo.');
+        showBatchLog(t('dup.none'));
       }
     }
 
@@ -1300,7 +1797,7 @@
         if (!seen[dupFullList[i]]) { deduped.push(dupFullList[i]); seen[dupFullList[i]] = true; }
       }
       batchSrnList = deduped;
-      showBatchLog('Detectados ' + dupFullList.length + ' SRN, ' + deduped.length + ' \u00fanicos tras eliminar duplicados.');
+      showBatchLog(t('dup.detected', { n: dupFullList.length }) + t('dup.unique', { n: deduped.length }) + '.');
       document.getElementById('btn-batch-start').disabled = deduped.length === 0;
     }
 
@@ -1314,7 +1811,7 @@
     function setBatchProgress(current, total, msg) {
       var pct = total > 0 ? Math.round((current / total) * 100) : 0;
       document.getElementById('batch-progress-bar').style.width = pct + '%';
-      document.getElementById('batch-status-text').textContent = msg || 'Procesando...';
+      document.getElementById('batch-status-text').textContent = msg || t('status.processing');
       document.getElementById('batch-status-count').textContent = current + ' / ' + total + ' SRN';
     }
 
@@ -1331,7 +1828,7 @@
       document.getElementById('btn-batch-start').classList.add('hidden');
       document.getElementById('btn-batch-stop').classList.remove('hidden');
       document.getElementById('batch-log').innerHTML = '';
-      setBatchProgress(0, batchSrnList.length, 'Iniciando...');
+      setBatchProgress(0, batchSrnList.length, t('status.initial'));
       setBatchHeaders();
       renderBatchTable();
 
@@ -1342,7 +1839,7 @@
         while (batchIdx < batchSrnList.length && batchSearching) {
           var i = batchIdx++;
           var srn = batchSrnList[i];
-          setBatchProgress(completedCount, batchSrnList.length, 'Procesando ' + srn + '...');
+          setBatchProgress(completedCount, batchSrnList.length, t('msg.batchProcessing', { srn: srn }));
           showBatchLog('[' + (i + 1) + '/' + batchSrnList.length + '] ' + srn);
 
           try {
@@ -1383,7 +1880,7 @@
                 batchRawItems.push(it);
                 batchResults.push(buildBatchRow(srn, addr, it));
               }
-              setBatchProgress(completedCount, batchSrnList.length, srn + ': ' + srnCount + ' registros...');
+              setBatchProgress(completedCount, batchSrnList.length, t('msg.batchRecords', { srn: srn, n: srnCount }));
               if (data.nextLink && data.nextLink !== '') {
                 var nl = data.nextLink;
                 if (nl.indexOf('http') !== 0) nl = baseUrl + (nl.charAt(0) === '/' ? '' : '/') + nl;
@@ -1391,15 +1888,15 @@
                 await sleep(BATCH_MS);
               } else { break; }
             }
-            showBatchLog('  \u2713 ' + srn + ': ' + srnCount + ' registros');
-            showBatchLog('  Obteniendo datos del operador econ\u00f3mico...');
+            showBatchLog('  ' + t('msg.batchOk', { srn: srn, n: srnCount }));
+            showBatchLog('  ' + t('msg.batchOperator'));
             await fetchActorInfo(srn, batchAbortCtrl.signal, batchRawItems);
           } catch (e) {
             showBatchLog('  \u2717 ' + srn + ': ' + e.message);
           }
           completedCount++;
           renderBatchTable();
-          setBatchProgress(completedCount, batchSrnList.length, 'Completado: ' + completedCount + '/' + batchSrnList.length);
+          setBatchProgress(completedCount, batchSrnList.length, t('msg.batchCompleted', { done: completedCount, total: batchSrnList.length }));
         }
       }
 
@@ -1410,8 +1907,8 @@
       }
       await Promise.all(workers);
 
-      setBatchProgress(batchSrnList.length, batchSrnList.length, 'Completado');
-      showBatchLog('Total: ' + batchResults.length + ' registros de ' + batchSrnList.length + ' SRN');
+      setBatchProgress(batchSrnList.length, batchSrnList.length, t('msg.completed'));
+      showBatchLog(t('msg.batchTotal', { n: batchResults.length, total: batchSrnList.length }));
       batchSearching = false;
       document.getElementById('btn-batch-start').classList.remove('hidden');
       document.getElementById('btn-batch-stop').classList.add('hidden');
@@ -1445,7 +1942,7 @@
       var tbody = document.getElementById('batch-table-body');
       var cnt = document.getElementById('batch-result-count');
       if (batchResults.length === 0) { tbody.innerHTML = ''; cnt.textContent = ''; return; }
-      cnt.textContent = batchResults.length + ' registros';
+      cnt.textContent = t('results.count', { n: batchResults.length });
       var cols = getVisibleCols();
       tbody.innerHTML = batchResults.map(function(row, idx) {
         return '<tr class="' + (idx % 2 === 0 ? 'bg-white' : 'bg-gray-50') + ' hover:bg-blue-50 transition">' +
@@ -1485,7 +1982,7 @@
         return { wch: Math.min(max + 2, 60) };
       });
       var wb = XLSX.utils.book_new();
-      XLSX.utils.book_append_sheet(wb, ws, 'Consolidado');
+      XLSX.utils.book_append_sheet(wb, ws, t('excel.sheetBatch'));
       XLSX.writeFile(wb, 'EUDAMED_Consolidado_' + new Date().toISOString().slice(0, 10) + '.xlsx');
     }
   </script>

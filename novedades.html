@@ -1,25 +1,122 @@
 <!DOCTYPE html>
-<html lang="es">
+<html lang="en">
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Novedades - Buscador SRN EUDAMED</title>
+  <title>What's new - SRN Search EUDAMED</title>
   <script src="https://cdn.tailwindcss.com"></script>
   <style>
-    body { font-family: 'Segoe UI', system-ui, -apple-system, sans-serif; }
+    @keyframes spin { to { transform: rotate(360deg); } }
+    .spinner { animation: spin 0.8s linear infinite; }
+    .fade-in { animation: fadeIn 0.3s ease-in; }
+    @keyframes fadeIn { from { opacity: 0; transform: translateY(8px); } to { opacity: 1; transform: translateY(0); } }
+    body { font-family: 'Segoe UI', system-ui, -apple-system, sans-serif; transition: background-color .2s, color .2s; }
+    /* Light header: the original look, used by default */
+    .app-header { position: relative; background: #ffffff; border-bottom: 1px solid #e5e7eb; }
+    .app-header > div { position: relative; z-index: 1; }
+    .hdr-icon-box { display: none; }
+    .hdr-icon { color: #2563eb; }
+    .hdr-title { color: #1f2937; }
+    .hdr-subtitle { color: #6b7280; }
+    .hdr-meta { color: #9ca3af; }
+    .hdr-select { background: #ffffff; color: #374151; box-shadow: inset 0 0 0 1px #d1d5db; }
+    .hdr-select:hover { background: #f9fafb; }
+    .hdr-select-icon { color: #9ca3af; }
+    #lang-select option { color: #0f172a; background: #ffffff; }
+    .hdr-news { color: #2563eb; }
+    .hdr-news:hover { color: #1d4ed8; background: #eff6ff; }
+    .icon-sun { display: none; }
+    ::-webkit-scrollbar { width: 8px; height: 8px; }
+    ::-webkit-scrollbar-track { background: #f1f5f9; }
+    ::-webkit-scrollbar-thumb { background: #94a3b8; border-radius: 4px; }
+    ::-webkit-scrollbar-thumb:hover { background: #64748b; }
+
+    /* Dark theme */
+    body.theme-dark { background-color: #0b1120; color: #e2e8f0; }
+    body.theme-dark ::-webkit-scrollbar-track { background: #0f172a; }
+    body.theme-dark ::-webkit-scrollbar-thumb { background: #475569; }
+    body.theme-dark ::-webkit-scrollbar-thumb:hover { background: #64748b; }
+    body.theme-dark .app-header { background: linear-gradient(110deg, #0f172a 0%, #1e293b 48%, #312e81 100%); border-bottom-color: rgba(255,255,255,.12); }
+    body.theme-dark .app-header::after { content: ''; position: absolute; inset: 0; background: radial-gradient(circle at 82% -40%, rgba(129,140,248,0.35), transparent 55%); pointer-events: none; }
+    body.theme-dark .hdr-icon-box { display: flex; background: rgba(255,255,255,.1); box-shadow: inset 0 0 0 1px rgba(255,255,255,.2); }
+    body.theme-dark .hdr-icon { color: #c7d2fe; }
+    body.theme-dark .hdr-title { color: #ffffff; }
+    body.theme-dark .hdr-subtitle { color: #cbd5e1; }
+    body.theme-dark .hdr-meta { color: #94a3b8; }
+    body.theme-dark .hdr-select { background: rgba(255,255,255,.1); color: #ffffff; box-shadow: inset 0 0 0 1px rgba(255,255,255,.2); }
+    body.theme-dark .hdr-select:hover { background: rgba(255,255,255,.2); }
+    body.theme-dark .hdr-select-icon { color: #cbd5e1; }
+    body.theme-dark #lang-select option { color: #0f172a; background: #ffffff; }
+    body.theme-dark .hdr-news { color: #ffffff; background: rgba(255,255,255,.1); box-shadow: inset 0 0 0 1px rgba(255,255,255,.2); }
+    body.theme-dark .hdr-news:hover { color: #ffffff; background: rgba(255,255,255,.2); }
+    body.theme-dark .icon-moon { display: none; }
+    body.theme-dark .icon-sun { display: block; }
+    body.theme-dark .bg-white { background-color: #111c2e; }
+    body.theme-dark .bg-gray-50 { background-color: #162238; }
+    body.theme-dark .bg-blue-50 { background-color: rgba(30,64,175,.25); }
+    body.theme-dark .bg-red-50 { background-color: rgba(127,29,29,.28); }
+    body.theme-dark .bg-blue-100 { background-color: rgba(30,64,175,.55); }
+    body.theme-dark .bg-green-100 { background-color: rgba(6,78,59,.55); }
+    body.theme-dark .bg-blue-200 { background-color: #1e3a8a; }
+    body.theme-dark .border-gray-200 { border-color: #263449; }
+    body.theme-dark .border-gray-300 { border-color: #334155; }
+    body.theme-dark .border-blue-200 { border-color: rgba(96,165,250,.35); }
+    body.theme-dark .border-red-200 { border-color: rgba(248,113,113,.35); }
+    body.theme-dark .divide-gray-100 > * + * { border-color: #263449; }
+    body.theme-dark .text-gray-800 { color: #f1f5f9; }
+    body.theme-dark .text-gray-700 { color: #dbe4f0; }
+    body.theme-dark .text-gray-600 { color: #cbd5e1; }
+    body.theme-dark .text-gray-500 { color: #94a3b8; }
+    body.theme-dark .text-gray-400 { color: #94a3b8; }
+    body.theme-dark .text-gray-300 { color: #64748b; }
+    body.theme-dark .text-blue-800, body.theme-dark .text-blue-700 { color: #bfdbfe; }
+    body.theme-dark .text-blue-600 { color: #93c5fd; }
+    body.theme-dark .text-green-700 { color: #6ee7b7; }
+    body.theme-dark .text-red-800 { color: #fca5a5; }
+    body.theme-dark input[type="text"]:not(#lang-select), body.theme-dark select:not(#lang-select) { background-color: #0f172a; color: #e2e8f0; border-color: #334155; }
+    body.theme-dark input::placeholder { color: #64748b; }
+    body.theme-dark select:not(#lang-select) option { color: #e2e8f0; background-color: #0f172a; }
+    body.theme-dark [class*="hover:bg-gray-"]:hover { background-color: #1e293b !important; }
+    body.theme-dark [class*="hover:text-gray-"]:hover { color: #f1f5f9 !important; }
+    body.theme-dark .toggle-slider { background: #475569; }
+    body.theme-dark .modal-backdrop { background: rgba(0,0,0,.65); }
+    body.theme-dark .check-item:hover { background: #1e293b; }
+    .table-container { max-height: 65vh; overflow: auto; }
+    .modal-backdrop { background: rgba(0,0,0,0.4); }
+    .check-item:hover { background: #f8fafc; }
+    .tab-active { border-bottom: 2px solid #2563eb; color: #1d4ed8; font-weight: 600; }
+    .tab-inactive { border-bottom: 2px solid transparent; color: #6b7280; }
+    .tab-inactive:hover { color: #374151; border-bottom-color: #d1d5db; }
+    .toggle { position: relative; width: 40px; height: 22px; flex-shrink: 0; }
+    .toggle input { opacity: 0; width: 0; height: 0; }
+    .toggle-slider { position: absolute; inset: 0; background: #cbd5e1; border-radius: 22px; cursor: pointer; transition: background 0.2s; }
+    .toggle-slider::before { content: ''; position: absolute; width: 16px; height: 16px; left: 3px; bottom: 3px; background: white; border-radius: 50%; transition: transform 0.2s; }
+    .toggle input:checked + .toggle-slider { background: #2563eb; }
+    .toggle input:checked + .toggle-slider::before { transform: translateX(18px); }
+    .toggle input:disabled + .toggle-slider { opacity: 0.5; cursor: not-allowed; }
   </style>
 </head>
 <body class="bg-gray-50 min-h-screen">
 
-  <header class="bg-white border-b border-gray-200 shadow-sm">
-    <div class="max-w-3xl mx-auto px-4 py-4 flex items-center justify-between">
+  <header class="app-header shadow-sm">
+    <div class="max-w-3xl mx-auto px-4 py-4 flex items-center justify-between gap-4">
       <div>
-        <h1 class="text-xl font-bold text-gray-800">Novedades</h1>
-        <p class="text-sm text-gray-500">Cambios importantes en cada versi&oacute;n</p>
+        <h1 data-i18n="news.title" class="text-xl font-bold hdr-title tracking-tight">Novedades</h1>
+        <p data-i18n="news.subtitle" class="text-sm hdr-subtitle">Cambios importantes en cada versi&oacute;n</p>
       </div>
-      <a href="index.html" class="px-4 py-2 text-sm text-blue-600 hover:text-blue-800 hover:bg-blue-50 rounded-lg font-medium transition">
-        &larr; Volver al Buscador
-      </a>
+      <div class="flex items-center gap-2 shrink-0">
+        <button id="theme-toggle" type="button" onclick="toggleTheme()" class="hdr-select p-2 rounded-full transition focus:outline-none focus:ring-2 focus:ring-blue-500" title="Dark mode">
+          <svg class="icon-moon w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-linecap="round" stroke-linejoin="round" stroke-width="2">
+            <path d="M21 12.8A9 9 0 1111.2 3a7 7 0 009.8 9.8z"></path>
+          </svg>
+          <svg class="icon-sun w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-linecap="round" stroke-linejoin="round" stroke-width="2">
+            <circle cx="12" cy="12" r="4"></circle><path d="M12 2v2m0 16v2M4.9 4.9l1.4 1.4m11.4 11.4l1.4 1.4M2 12h2m16 0h2M4.9 19.1l1.4-1.4M17.7 6.3l1.4-1.4"></path>
+          </svg>
+        </button>
+        <a href="index.html" class="hdr-news shrink-0 px-3 py-2 text-sm font-medium rounded-lg transition">
+          <span>&larr;</span> <span data-i18n="news.back">Volver al Buscador</span>
+        </a>
+      </div>
     </div>
   </header>
 
@@ -28,8 +125,75 @@
   </main>
 
   <script>
+    var LS_LANG = 'eudamed_lang';
+    var LS_THEME = 'eudamed_theme';
+    var I18N = {
+      es: {
+        'news.pageTitle': 'Novedades - Buscador SRN EUDAMED',
+        'news.title': 'Novedades',
+        'news.subtitle': 'Cambios importantes en cada versi\u00f3n',
+        'news.back': 'Volver al Buscador',
+        'settings.themeDark': 'Activar modo oscuro',
+        'settings.themeLight': 'Activar modo claro'
+      },
+      en: {
+        'news.pageTitle': "What's new - SRN Search EUDAMED",
+        'news.title': "What's new",
+        'news.subtitle': 'Important changes in each version',
+        'news.back': 'Back to the search tool',
+        'settings.themeDark': 'Switch to dark mode',
+        'settings.themeLight': 'Switch to light mode'
+      },
+      pt: {
+        'news.pageTitle': 'Novidades - Pesquisa SRN EUDAMED',
+        'news.title': 'Novidades',
+        'news.subtitle': 'Altera\u00e7\u00f5es importantes em cada vers\u00e3o',
+        'news.back': 'Voltar \u00e0 Pesquisa SRN',
+        'settings.themeDark': 'Ativar modo escuro',
+        'settings.themeLight': 'Ativar modo claro'
+      }
+    };
+    var LANG = 'en';
+    try {
+      var savedLang = localStorage.getItem(LS_LANG);
+      if (savedLang && I18N[savedLang]) LANG = savedLang;
+    } catch (e) {}
+    var THEME = 'light';
+    try {
+      var savedTheme = localStorage.getItem(LS_THEME);
+      if (savedTheme === 'dark' || savedTheme === 'light') THEME = savedTheme;
+    } catch (e) {}
+
+    function t(key) {
+      var dict = I18N[LANG] || I18N.en;
+      if (dict[key] !== undefined) return dict[key];
+      return I18N.en[key] !== undefined ? I18N.en[key] : key;
+    }
+
+    function applyTheme() {
+      document.body.classList.toggle('theme-dark', THEME === 'dark');
+      var btn = document.getElementById('theme-toggle');
+      if (btn) btn.title = t(THEME === 'dark' ? 'settings.themeLight' : 'settings.themeDark');
+    }
+
+    function toggleTheme() {
+      THEME = THEME === 'dark' ? 'light' : 'dark';
+      try { localStorage.setItem(LS_THEME, THEME); } catch (e) {}
+      applyTheme();
+    }
+
+    function applyI18n() {
+      var nodes = document.querySelectorAll('[data-i18n]');
+      for (var i = 0; i < nodes.length; i++) {
+        nodes[i].textContent = t(nodes[i].getAttribute('data-i18n'));
+      }
+      document.documentElement.lang = LANG;
+      document.title = t('news.pageTitle');
+    }
+
     var LS_CHANGELOG_KEY = 'eudamed_changelog_viewed';
     var CHANGELOG = [
+      { date: '19/11/2026', version: 'v5.3', text: 'Interfaz implementada en tres idiomas (espa\u00f1ol, ingl\u00e9s y portugu\u00e9s) con selector en la cabecera. Temas claro y oscuro con conmutador en la cabecera.' },
       { date: '24/08/2026', version: 'v5.2.2', text: 'B\u00fasqueda m\u00faltiple en paralelo (5 workers, configurable); correcci\u00f3n de columnas VAT/EORI/Trade Register en b\u00fasqueda m\u00faltiple; correcci\u00f3n de badge "Nuevo"' },
       { date: '24/08/2026', version: 'v5.2.1', text: 'Secci\u00f3n de Novedades para registrar cambios importantes; correcci\u00f3n de formato de columnas' },
       { date: '24/08/2026', version: 'v5.2', text: 'Columnas opcionales VAT, EORI y Trade Register del operador econ\u00f3mico' }
@@ -59,6 +223,8 @@
       try { localStorage.setItem(LS_CHANGELOG_KEY, CHANGELOG[0].version); } catch (e) {}
     }
 
+    applyTheme();
+    applyI18n();
     renderChangelog();
     markAsViewed();
   </script>
